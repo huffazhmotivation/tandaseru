@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Admin — tandaseru!</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/admin.css">
+</head>
+<body>
+  <div class="app" id="app" data-view="edit">
+    <header class="top">
+      <div class="brand"><span class="logo">tandaseru<i>!</i></span><span class="pill-admin">Admin</span></div>
+      <div class="view-switch" role="group" aria-label="Tampilan">
+        <button data-act="view" data-v="edit" aria-pressed="true">Edit</button>
+        <button data-act="view" data-v="preview" aria-pressed="false">Preview</button>
+      </div>
+      <div class="top-right">
+        <span class="status" id="status" aria-live="polite">Tersimpan</span>
+        <button class="btn-s" data-act="menu-more" id="more" aria-haspopup="true">Lainnya</button>
+        <a class="btn-s" href="index.html" target="_blank" rel="noopener">Buka situs ↗</a>
+        <button class="btn-p" data-act="publish" id="publish" disabled><span class="long">Simpan &amp; terbitkan</span><span class="short">Terbitkan</span></button>
+      </div>
+      <div class="more" id="moreMenu" hidden>
+        <button data-act="export">Ekspor data (.json)</button>
+        <button data-act="import">Impor data…</button>
+        <button data-act="reset" class="danger">Kembalikan ke bawaan</button>
+      </div>
+    </header>
+
+    <nav class="tabs" id="tabs" aria-label="Bagian halaman"></nav>
+    <main class="editor" id="editor"></main>
+
+    <section class="preview" aria-label="Preview langsung">
+      <div class="pv-bar">
+        <span class="live"><i></i>Preview langsung</span>
+        <div class="seg" role="group" aria-label="Perangkat">
+          <button data-act="device" data-v="desktop" aria-pressed="true">Desktop</button>
+          <button data-act="device" data-v="mobile" aria-pressed="false">Mobile</button>
+        </div>
+      </div>
+      <div class="stage" id="stage">
+        <div class="screen" id="screen"><iframe id="frame" title="Preview situs" src="index.html?preview=1"></iframe></div>
+      </div>
+    </section>
+  </div>
+
+  <input type="file" id="imgInput" accept="image/*" hidden>
+  <input type="file" id="jsonInput" accept="application/json,.json" hidden>
+  <div class="toast" id="toast" role="status" hidden></div>
+
+  <script src="assets/store.js"></script>
+  <script src="assets/admin.js"></script>
+</body>
+</html>
