@@ -436,6 +436,12 @@
       TSStore.clearDraft(); dirty = false; setStatus(); toast('Tersimpan — situs sudah diperbarui');
     },
     'menu-more'() { const m = $('#moreMenu'); m.hidden = !m.hidden; },
+    'export-site'() {
+      const blob = new Blob(['window.TANDASERU_DATA = ' + JSON.stringify(S, null, 2) + ';\n'], { type: 'text/javascript' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+      a.download = 'data.js'; a.click(); URL.revokeObjectURL(a.href);
+      toast('data.js terunduh — timpa file assets/data.js lalu deploy ulang');
+    },
     export() {
       const blob = new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' });
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob);

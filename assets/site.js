@@ -648,7 +648,7 @@
     if (ui.color && !colors.includes(ui.color)) ui.color = '';
     if (ui.img >= imgs.length) ui.img = 0;
     m.hidden = false;
-    document.body.classList.add('lock');
+    lockScroll(true);
     m.innerHTML = `
       <div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(p.name)}">
         <button class="close" data-act="close" aria-label="Tutup">×</button>
@@ -688,6 +688,31 @@
       <p class="note">${esc((S.checkout && S.checkout.footnote) || '')}</p>`;
   }
 
+  /* kunci scroll latar: roda mouse/sentuh hanya menggulir panel info */
+  let lockY = 0;
+  function lockScroll(on) {
+    const h = document.documentElement;
+    if (on === h.classList.contains('lock')) return;
+    if (on) {
+      lockY = window.scrollY;
+      const sw = innerWidth - h.clientWidth;
+      h.classList.add('lock');
+      if (sw > 0) document.body.style.paddingRight = sw + 'px';
+    } else {
+      h.classList.remove('lock'); document.body.style.paddingRight = '';
+      window.scrollTo(0, lockY);
+    }
+  }
+  $('#modal').addEventListener('wheel', (e) => {
+    const sc = e.target.closest('.sheet-info, .sheet');
+    const box = sc && (sc.classList.contains('sheet-info') ? sc : (sc.scrollHeight > sc.clientHeight ? sc : null));
+    const inInfo = e.target.closest('.sheet-info');
+    const el = inInfo || box;
+    if (!el || el.scrollHeight <= el.clientHeight) { e.preventDefault(); return; }
+    const up = e.deltaY < 0;
+    if ((up && el.scrollTop <= 0) || (!up && el.scrollTop + el.clientHeight >= el.scrollHeight - 1)) e.preventDefault();
+  }, { passive: false });
+
   function openModal(id) {
     ui.openId = id; ui.size = ''; ui.color = ''; ui.img = 0;
     $('#modal').classList.add('enter');
@@ -697,7 +722,7 @@
   function closeModal() {
     ui.openId = null;
     const m = $('#modal'); m.hidden = true; m.innerHTML = ''; m.classList.remove('enter');
-    document.body.classList.remove('lock');
+    lockScroll(false);
   }
 
   /* ---------- interaksi ---------- */

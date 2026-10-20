@@ -157,7 +157,8 @@
   const Store = {
     DEFAULTS,
     clone,
-    load: () => read(KEY) || clone(DEFAULTS),
+    // data terbit: milik browser admin (localStorage) bila ada, jika tidak pakai assets/data.js (untuk pengunjung)
+    load: () => read(KEY) || merge(DEFAULTS, global.TANDASERU_DATA || {}),
     loadDraft: () => read(DRAFT),
     hasPublished: () => { try { return !!localStorage.getItem(KEY); } catch (e) { return false; } },
     saveDraft(s) { try { localStorage.setItem(DRAFT, JSON.stringify(s)); } catch (e) { /* kuota penuh: abaikan */ } },

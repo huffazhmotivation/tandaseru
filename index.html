@@ -7,7 +7,10 @@
   <meta name="description" content="Busana muslim pria dengan potongan bersih, bahan adem, dan warna netral yang mudah dipadukan.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="preload" as="image" href="foto/hero.jpg" fetchpriority="high">
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap" onload="this.rel='stylesheet'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet"></noscript>
+  <style>html{background:#F3EEE4}body{margin:0}#app:empty{min-height:100vh}</style>
   <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
@@ -15,7 +18,8 @@
   <div class="cursor" id="cursor" aria-hidden="true"></div>
   <div id="app"></div>
   <div id="modal" class="modal" hidden></div>
-  <script src="assets/store.js"></script>
-  <script src="assets/site.js"></script>
+  <script src="assets/data.js" defer></script>
+  <script src="assets/store.js" defer></script>
+  <script src="assets/site.js" defer></script>
 </body>
 </html>

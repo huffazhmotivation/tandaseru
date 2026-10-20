@@ -25,6 +25,7 @@
         <button class="btn-p" data-act="publish" id="publish" disabled><span class="long">Simpan &amp; terbitkan</span><span class="short">Terbitkan</span></button>
       </div>
       <div class="more" id="moreMenu" hidden>
+        <button data-act="export-site">Unduh data.js (untuk deploy)</button>
         <button data-act="export">Ekspor data (.json)</button>
         <button data-act="import">Impor data…</button>
         <button data-act="reset" class="danger">Kembalikan ke bawaan</button>
@@ -52,6 +53,7 @@
   <input type="file" id="jsonInput" accept="application/json,.json" hidden>
   <div class="toast" id="toast" role="status" hidden></div>
 
+  <script src="assets/data.js"></script>
   <script src="assets/store.js"></script>
   <script src="assets/admin.js"></script>
 </body>

@@ -30,7 +30,7 @@ input, textarea, select { font: inherit; color: inherit; }
 .app { display: grid; grid-template-columns: 204px 436px minmax(0, 1fr); grid-template-rows: 64px minmax(0, 1fr); gap: 12px; height: 100vh; padding: 12px; }
 
 /* header: pil melayang */
-.top { grid-column: 1 / -1; position: relative; z-index: 6; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 10px 0 24px; border-radius: 999px; background: var(--paper); box-shadow: 0 1px 0 #fff inset, 0 18px 36px -26px rgba(11, 27, 22, .5), 0 0 0 1px var(--line); }
+.top { min-width: 0; grid-column: 1 / -1; position: relative; z-index: 6; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 10px 0 24px; border-radius: 999px; background: var(--paper); box-shadow: 0 1px 0 #fff inset, 0 18px 36px -26px rgba(11, 27, 22, .5), 0 0 0 1px var(--line); }
 .brand { display: flex; align-items: center; gap: 12px; }
 .pill-admin { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; padding: 5px 12px; border-radius: 999px; background: var(--primary); color: #fff; }
 .top-right { display: flex; align-items: center; gap: 8px; }
@@ -40,7 +40,7 @@ input, textarea, select { font: inherit; color: inherit; }
 .status.dirty::before { background: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 28%, transparent); animation: pulse 1.8s infinite; }
 @keyframes pulse { 50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--accent) 6%, transparent); } }
 .btn-s, .btn-p { height: 44px; padding: 0 20px; border-radius: 999px; font-weight: 600; font-size: 13.5px; display: inline-flex; align-items: center; gap: 8px; transition: background .35s var(--ease), color .35s var(--ease), box-shadow .35s var(--ease), transform .35s var(--ease), opacity .3s; }
-.btn-s { box-shadow: inset 0 0 0 1.5px var(--line-2); background: transparent; }
+.btn-s { box-shadow: inset 0 0 0 1.5px var(--line-2); background: transparent; color: var(--ink); text-decoration: none; white-space: nowrap; }
 .btn-s:hover { background: #fff; box-shadow: inset 0 0 0 1.5px var(--primary); }
 .btn-p { background: var(--primary); color: #fff; box-shadow: 0 14px 24px -14px color-mix(in srgb, var(--primary) 80%, #000); }
 .btn-p:hover:not(:disabled) { background: var(--accent); color: var(--ink); transform: translateY(-1px); }
@@ -195,7 +195,7 @@ input, textarea, select { font: inherit; color: inherit; }
   .seg button { height: 36px; }
 }
 @media (max-width: 640px) {
-  .app { grid-template-columns: 1fr; grid-template-rows: 64px auto minmax(0, 1fr); gap: 8px; padding: 8px; }
+  .app { grid-template-columns: minmax(0, 1fr); grid-template-rows: 64px auto minmax(0, 1fr); gap: 8px; padding: 8px; }
   .tabs { flex-direction: row; overflow-x: auto; padding: 8px; border-radius: 22px; scrollbar-width: none; }
   .tabs::-webkit-scrollbar { display: none; }
   .tab { white-space: nowrap; flex: none; }
@@ -224,5 +224,13 @@ input, textarea, select { font: inherit; color: inherit; }
   .prow .flags { display: none; }
   .imgf { grid-template-columns: 80px 1fr; }
   .thumb { width: 80px; }
+}
+@media (max-width: 380px) {
+  .top { padding: 0 6px; gap: 4px; }
+  .view-switch { padding: 3px; }
+  .view-switch button { padding: 0 9px; height: 34px; font-size: 12.5px; }
+  .btn-s, .btn-p { padding: 0 10px; font-size: 12px; height: 40px; }
+  .top-right { gap: 4px; min-width: 0; }
+  .editor { padding: 20px 14px 90px; }
 }
 @media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
