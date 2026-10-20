@@ -234,3 +234,7 @@ input, textarea, select { font: inherit; color: inherit; }
   .editor { padding: 20px 14px 90px; }
 }
 @media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+
+/* logo resmi (hitam di header terang) */
+.logo { color: #000; display: inline-flex; align-items: center; }
+.logo .wm { display: block; height: 15px; width: auto; fill: currentColor; }
