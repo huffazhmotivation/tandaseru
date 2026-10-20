@@ -828,3 +828,115 @@ html.lock { scroll-behavior: auto; }
 .mega { font-size: 0; line-height: 0; margin: 0 0 -2.2%; color: rgba(255, 255, 255, .08); }
 .mega .wm { display: block; width: 100%; height: auto; }
 @media (max-width: 900px) { .logo .wm { height: 18px; } }
+
+
+/* =====================================================================
+   PERBAIKAN MOBILE (<= 900px): promo ringkas, pilihan pendek, detail rapi
+   ===================================================================== */
+/* matikan zoom otomatis & zoom dobel-ketuk */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; touch-action: manipulation; }
+input, select, textarea, .field { font-size: 16px; }
+
+@media (max-width: 900px) {
+  /* ---------- 1. PROMO: pendek & ringkas ---------- */
+  .promo-sec { padding-bottom: 44px; }
+  .promo { grid-template-columns: 1fr 1fr; gap: 0 12px; padding: 18px 16px 16px; border-radius: 26px; align-items: end; }
+  .promo-l { grid-column: 1 / -1; }
+  .pbadge { padding: 7px 13px; gap: 7px; font-size: 10px; letter-spacing: .13em; }
+  .pbadge svg { width: 12px; height: 12px; }
+  .ptitle { font-size: 26px; line-height: 1.15; margin: 12px 0 6px; }
+  .ptitle mark { margin: .04em .1em .04em 0; }
+  .ptext { font-size: 12.5px; line-height: 1.45; margin-bottom: 12px; max-width: none; }
+  .pact { flex-wrap: nowrap; gap: 8px; }
+  .pact .btn { width: auto; flex: 1 1 0; min-width: 0; height: 44px; padding: 0 5px 0 16px; font-size: 13px; justify-content: space-between; }
+  .pact .btn .ar { width: 34px; height: 34px; flex: none; }
+  .coupon { width: auto; flex: 1 1 0; min-width: 0; height: 44px; padding: 0 5px 0 14px; gap: 8px; justify-content: space-between; }
+  .coupon small { display: none; }
+  .coupon b { font-size: 14px; letter-spacing: .08em; }
+  .coupon i { width: 34px; height: 34px; flex: none; }
+  .coupon svg { width: 15px; height: 15px; }
+  .promo-r { display: contents; }
+  .promo-r > .plabel:first-child { grid-column: 1; grid-row: 2; align-self: end; margin-top: 14px; padding-top: 12px; font-size: 10px; letter-spacing: .14em; }
+  .pnum { grid-column: 1; grid-row: 3; align-self: start; font-size: 60px; margin: 2px 0 0 -.03em; text-shadow: none; }
+  .plabel.clock { grid-column: 2; grid-row: 2; align-self: end; margin-top: 14px; padding-top: 12px; gap: 6px; font-size: 10px; letter-spacing: .14em; }
+  .plabel.clock::before { width: 11px; height: 11px; border-width: 1.5px; }
+  .cd { grid-column: 2; grid-row: 3; display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 4px; }
+  .cdb { max-width: none; padding: 6px 4px 5px; border-radius: 11px; }
+  .cdb b { font-size: 17px; }
+  .cdb small { margin-top: 2px; font-size: 8px; letter-spacing: .1em; }
+  /* bila tanpa hitung mundur / persen, tetap rapi */
+  .promo-r > .plabel:first-child:last-child, .pnum:last-child { grid-column: 1 / -1; }
+
+  /* ---------- 2. PILIHAN (best seller): pendek, daftar nama di bawah foto ---------- */
+  .featured .feat-card { padding: 14px 14px 20px; border-radius: 26px; }
+  .featured .feat-grid { display: flex; flex-direction: column; gap: 0; }
+  .feat-copy { display: contents; }
+  .feat-art { order: 1; margin: 0; max-width: none; }
+  .feat-stage { aspect-ratio: 4 / 3.2; }
+  .feat-stage .frame.slide, .feat-stage .frame.slide img { border-radius: 18px; }
+  .feat-stage .frame.slide img { object-position: center 18%; }
+  .feat-stage .offset { display: none; }
+  .tagbox { right: 10px; top: 10px; padding: 6px 12px; font-size: 10.5px; }
+  .feat-count { left: 14px; bottom: 10px; font-size: 11px; color: rgba(255, 255, 255, .85); text-shadow: 0 1px 8px rgba(0, 0, 0, .5); z-index: 4; }
+  .feat-count b { font-size: 24px; }
+  .feat-nav { order: 2; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 10px 0 0; }
+  .fn { padding: 8px 8px 9px; border-radius: 12px; min-height: 0; }
+  .fn .no { font-size: 9px; letter-spacing: .14em; }
+  .fn .nm { font-size: 11.5px; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .feat-copy .eyebrow { order: 3; margin-top: 16px; font-size: 10px; }
+  .feat-copy .h2 { order: 4; margin: 8px 0 6px; max-width: none; font-size: 22px; line-height: 1.15; }
+  .feat-slides { order: 5; }
+  .fs-d { font-size: 12.5px; line-height: 1.5; margin-bottom: 12px; max-width: none; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .fs { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 0 10px; }
+  .fs-d { grid-column: 1 / -1; }
+  .feat-meta { margin: 0; padding: 0; border: 0; flex-direction: column; align-items: flex-start; gap: 0; }
+  .feat-meta b { font-size: 22px; }
+  .feat-meta span { font-size: 9.5px; letter-spacing: .08em; }
+  .feat-copy .btn { height: 42px; padding: 0 5px 0 16px; font-size: 13px; }
+  .feat-copy .btn .ar { width: 32px; height: 32px; }
+  .feat-bang { display: none; }
+
+  /* ---------- 3. DETAIL PRODUK: foto utuh, teks ringkas, tombol minimalis ---------- */
+  .sheet { height: auto; max-height: 92dvh; max-height: 92vh; max-height: 92dvh; }
+  .sheet-media { flex: 0 0 auto !important; height: clamp(200px, 32dvh, 290px); padding: 10px 10px 0; background: var(--sage); }
+  .sheet-main { height: 100%; }
+  .sheet-main .frame, .gal, .gslide .frame { border-radius: 16px; background: transparent; }
+  .gslide .frame img, .sheet-main .frame img { object-fit: contain !important; object-position: center !important; background: transparent; }
+  .gnav { width: 32px; height: 32px; margin-top: -16px; }
+  .gnav svg { width: 16px; height: 16px; }
+  .close { top: 14px; right: 14px; width: 34px; height: 34px; font-size: 18px; }
+  .sheet-info { flex: 1 1 auto; overflow-y: auto !important; overscroll-behavior: contain; padding: 14px 18px calc(14px + env(safe-area-inset-bottom, 0px)); display: block; }
+  .sheet-info .cat { font-size: 10.5px; letter-spacing: .13em; }
+  .sheet-info h3 { font-size: 24px; margin: 2px 0 2px; line-height: 1.1; }
+  .sheet-info .price { font-size: 17px; margin: 0 0 6px; }
+  .sheet-info .price s { font-size: 12.5px; }
+  .sheet-info .desc { font-size: 12.5px; line-height: 1.45; -webkit-line-clamp: 2 !important; display: -webkit-box !important; margin-bottom: 10px; }
+  .sheet-info .opt { margin-bottom: 8px; }
+  .sheet-info .opt:not(:last-of-type) { display: flex; align-items: center; gap: 10px; }
+  .sheet-info .opt:not(:last-of-type) h4 { margin: 0; flex: none; min-width: 54px; font-size: 10px; letter-spacing: .12em; }
+  .sheet-info .opt:not(:last-of-type) h4 b { display: none; }
+  .sheet-info .opts { gap: 6px; }
+  .sheet-info .pill { height: 30px; min-width: 38px; padding: 0 12px; font-size: 12px; }
+  .sheet-info .opt:last-of-type { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .sheet-info .opt:last-of-type h4 { display: none; }
+  .sheet-info .hint { text-align: center; font-size: 11.5px; margin: 0 0 8px; }
+  .sheet-info .note { display: none; }
+  .sheet-info .chans { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; }
+  .sheet-info .chn { min-width: 0; width: 100%; box-sizing: border-box; }
+  .sheet-info .chn { padding: 4px 12px 4px 4px; gap: 8px; min-height: 40px; }
+  .sheet-info .chn:first-child { grid-column: 1 / -1; }
+  .sheet-info .chn .ico { width: 30px; height: 30px; font-size: 13px; }
+  .sheet-info .chn .ico svg { width: 17px; height: 17px; }
+  .sheet-info .chn .tx small { display: none; }
+  .sheet-info .chn .tx b { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sheet-info .chn .go { font-size: 14px; flex: none; }
+  .sheet-info .chn.whatsapp .tx b { font-size: 12px; }
+  .sheet-info .chn:hover { transform: none; }
+  .sheet-info .chans > .hint { grid-column: 1 / -1; }
+}
+@media (max-width: 380px) {
+  .ptitle { font-size: 23px; }
+  .pnum { font-size: 52px; }
+  .cdb b { font-size: 15px; }
+}
+@media (max-width: 900px) { .sheet-info .chn:not(:first-child) .go { display: none; } .sheet-info .chn:not(:first-child) { padding-right: 8px; } }

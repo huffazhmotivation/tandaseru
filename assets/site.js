@@ -666,29 +666,19 @@
           <h3>${esc(p.name)}</h3>
           <p class="price">${rupiah(p.price)}${p.compare > p.price ? `<s>${rupiah(p.compare)}</s>` : ''}</p>
           <p class="desc">${nl(p.desc)}</p>
-          ${sizes.length ? `<div class="opt" data-opt="size"><h4>Ukuran<b>${esc(ui.size)}</b></h4><div class="opts">${sizes.map((s) => `<button class="pill" data-act="size" data-v="${esc(s)}" aria-pressed="${s === ui.size}">${esc(s)}</button>`).join('')}</div></div>` : ''}
-          ${colors.length ? `<div class="opt" data-opt="color"><h4>Warna<b>${esc(ui.color)}</b></h4><div class="opts">${colors.map((s) => `<button class="pill" data-act="color" data-v="${esc(s)}" aria-pressed="${s === ui.color}">${esc(s)}</button>`).join('')}</div></div>` : ''}
+          ${sizes.length ? `<div class="opt"><h4>Ukuran<b>${esc(ui.size)}</b></h4><div class="opts">${sizes.map((s) => `<button class="pill" data-act="size" data-v="${esc(s)}" aria-pressed="${s === ui.size}">${esc(s)}</button>`).join('')}</div></div>` : ''}
+          ${colors.length ? `<div class="opt"><h4>Warna<b>${esc(ui.color)}</b></h4><div class="opts">${colors.map((s) => `<button class="pill" data-act="color" data-v="${esc(s)}" aria-pressed="${s === ui.color}">${esc(s)}</button>`).join('')}</div></div>` : ''}
           ${tplChannels(p)}
         </div>
       </div>`;
     fitSheet();
   }
 
-  // klik ukuran/warna: ubah warna tombol & teks pilihan saja, tanpa membangun ulang panel (tidak berkedip)
-  function updateChoice(kind) {
-    const p = product(); if (!p) return;
-    const m = $('#modal');
-    m.querySelectorAll(`.pill[data-act="${kind}"]`).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === ui[kind])));
-    const lb = m.querySelector(`.opt[data-opt="${kind}"] h4 b`); if (lb) lb.textContent = ui[kind];
-    const wa = m.querySelector('.chn.whatsapp'); if (wa && !p.soldout) wa.setAttribute('href', waLink(orderText(p)));
-    const hint = m.querySelector('[data-hint="size"]');
-    if (hint) { const was = hint.hidden; hint.hidden = !!ui.size; if (was !== hint.hidden) fitSheet(); }
-  }
-
   /* panel selalu muat satu layar: rapatkan bertahap sampai tidak perlu scroll */
   function fitSheet() {
     const sh = $('#modal .sheet'), info = $('#modal .sheet-info');
     if (!sh || !info) return;
+    if (matchMedia('(max-width: 900px)').matches) { sh.classList.remove('f1', 'f2', 'f3', 'f4', 'f5'); return; }
     const over = () => info.scrollHeight > info.clientHeight + 1;
     sh.classList.remove('f1', 'f2', 'f3', 'f4', 'f5'); sh.dataset.fit = '0';
     for (let l = 1; l <= 5 && over(); l++) { sh.classList.add('f' + l); sh.dataset.fit = String(l); }
@@ -742,9 +732,9 @@
       if (lynk) add('lynk', lynk, chOf('lynk').label || 'Beli via Lynk.id', chOf('lynk').note || '');
       if (waOn()) add('whatsapp', waLink(orderText(p)), chOf('whatsapp').label || 'Pesan via WhatsApp', chOf('whatsapp').note || '');
     }
-    const hasSize = !p.soldout && list(p.sizes).length > 0;
+    const needSize = !p.soldout && list(p.sizes).length && !ui.size;
     return `<div class="opt"><h4>${esc((S.checkout && S.checkout.title) || 'Pesan lewat')}</h4>
-      ${hasSize ? `<p class="hint" data-hint="size"${ui.size ? ' hidden' : ''}>Pilih ukuran dulu agar pesanan Anda tepat.</p>` : ''}
+      ${needSize ? '<p class="hint">Pilih ukuran dulu agar pesanan Anda tepat.</p>' : ''}
       <div class="chans">${rows.length ? rows.join('') : '<p class="hint">Belum ada kanal pesan yang aktif.</p>'}</div></div>
       <p class="note">${esc((S.checkout && S.checkout.footnote) || '')}</p>`;
   }
@@ -823,7 +813,7 @@
       if (act === 'gprev') galGo(ui.img - 1);
       if (act === 'gnext') galGo(ui.img + 1);
       if (act === 'gdot') galGo(+el.dataset.i);
-      if (act === 'size' || act === 'color') { const v = el.dataset.v; ui[act] = ui[act] === v ? '' : v; updateChoice(act); }
+      if (act === 'size' || act === 'color') { const v = el.dataset.v; ui[act] = ui[act] === v ? '' : v; renderModal(); }
       return;
     }
     if (e.target.id === 'modal') closeModal();
@@ -913,3 +903,5 @@
   initFx();
   setInterval(tickPromo, 1000); tickPromo();
 })();
+/* cegah zoom cubit/dobel-ketuk di iOS */
+['gesturestart','gesturechange','gestureend'].forEach((t) => document.addEventListener(t, (e) => e.preventDefault()));
