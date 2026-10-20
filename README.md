@@ -9,3 +9,12 @@ Jalankan (wajib lewat server lokal agar admin & situs berbagi data):
 
 Data & foto disimpan di localStorage browser (hanya untuk demo/uji).
 Untuk produksi, ganti assets/store.js dengan API/database + login admin.
+
+## Kategori custom (Admin → Katalog → Kategori)
+
+- Tambah, ganti nama, urutkan (↑↓), dan hapus kategori sesuka hati.
+- Ganti nama otomatis ikut mengubah produk di kategori itu; nama kosong/kembar ditolak.
+- Hapus kategori → produknya jadi "tanpa kategori" (konfirmasi dulu).
+- Tiap kategori punya teks pendek, foto sampul, dan bentuk ilustrasi untuk kartu di situs.
+- Kategori tanpa produk tidak tampil di situs.
+- Data lama (kategori berupa teks biasa) otomatis dikonversi.

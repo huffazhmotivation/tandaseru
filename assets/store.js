@@ -80,7 +80,8 @@
       eyebrow: 'Katalog',
       title: 'Pilih yang paling Anda banget',
       text: 'Klik produk, pilih ukuran dan warna, lalu pesan lewat Shopee, Lynk.id, atau WhatsApp. Stok tiap model dibatasi — yang Anda taksir hari ini bisa habis besok.',
-      categories: ['Koko', 'Gamis', 'Kemeja', 'Celana', 'Sarung', 'Outer', 'Aksesori'],
+      // tiap kategori: nama (dipakai produk), teks pendek, foto sampul, bentuk ilustrasi — semua bisa diubah dari admin
+      categories: ['Koko', 'Gamis', 'Kemeja', 'Celana', 'Sarung', 'Outer', 'Aksesori'].map((name) => ({ name, text: '', image: '', fig: '' })),
       products: [
         { id: 'p1', name: 'Koko Arkan', category: 'Koko', price: 289000, compare: 0, badge: 'Baru', fig: '', tone: '#D2C7B2', images: ['foto/koko-arkan.jpg'], sizes: 'S, M, L, XL, XXL', colors: 'Sand, Hitam, Sage', desc: 'Rapi saat berdiri di saf depan, adem saat khutbah panjang. Katun toyobo, kerah shanghai, saku dada, placket tersembunyi. Bukan sekadar koko — ini koko yang bikin orang bertanya, “beli di mana?”', shopee: '', lynk: '', soldout: false, hidden: false },
         { id: 'p2', name: 'Gamis Zayd', category: 'Gamis', price: 459000, compare: 0, badge: 'Best seller', fig: '', tone: '#E6E0D2', images: ['foto/gamis-zayd-1.jpg', 'foto/gamis-zayd-2.jpg'], sizes: 'M, L, XL, XXL', colors: 'Putih tulang, Hitam, Navy', desc: 'Wibawa tanpa usaha. Gamis rayon twill yang jatuh sempurna sampai mata kaki — pas untuk Jumatan, Idulfitri, dan foto keluarga yang akan dikenang bertahun-tahun.', shopee: '', lynk: '', soldout: false, hidden: false },
@@ -141,13 +142,26 @@
   const clone = (v) => JSON.parse(JSON.stringify(v));
 
   // gabungkan data tersimpan dengan default: objek digabung dalam, array diganti utuh
-  function merge(base, over) {
+  function mergeDeep(base, over) {
     if (!isObj(base) || !isObj(over)) return over === undefined ? clone(base) : over;
     const out = {};
-    for (const k of Object.keys(base)) out[k] = k in over ? merge(base[k], over[k]) : clone(base[k]);
+    for (const k of Object.keys(base)) out[k] = k in over ? mergeDeep(base[k], over[k]) : clone(base[k]);
     for (const k of Object.keys(over)) if (!(k in out)) out[k] = over[k];
     return out;
   }
+
+  // kategori lama berupa teks ("Koko") otomatis diubah jadi objek; nama kosong/kembar dibuang
+  function normCats(s) {
+    const c = s && s.catalog; if (!c) return s;
+    const seen = new Set();
+    c.categories = (Array.isArray(c.categories) ? c.categories : [])
+      .map((x) => (typeof x === 'string' ? { name: x } : x))
+      .filter((x) => x && typeof x.name === 'string' && x.name.trim())
+      .map((x) => ({ name: x.name.trim(), text: x.text || '', image: x.image || '', fig: x.fig || '' }))
+      .filter((x) => { const k = x.name.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; });
+    return s;
+  }
+  const merge = (base, over) => normCats(mergeDeep(base, over));
 
   function read(key) {
     try { const raw = localStorage.getItem(key); return raw ? merge(DEFAULTS, JSON.parse(raw)) : null; }

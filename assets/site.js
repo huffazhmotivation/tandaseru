@@ -302,7 +302,7 @@
 
   function tplCategories() {
     const vis = visibleProducts();
-    const cats = S.catalog.categories.filter((k) => vis.some((p) => p.category === k));
+    const cats = S.catalog.categories.filter((k) => vis.some((p) => p.category === k.name));
     if (cats.length < 2) return '';
     const c = S.catalog;
     return `
@@ -310,8 +310,8 @@
         <div class="wrap">
           <div class="section-head rv"><div><p class="eyebrow">${esc(c.tilesEyebrow || 'Jelajahi')}</p><h2 class="h2">${nl(c.tilesTitle || 'Kategori')}</h2></div><p class="lead">Pilih kategori favoritmu, lalu buka koleksinya.</p></div>
           <div class="panels rv" id="panels">
-            ${cats.map((k, i) => { const p = vis.find((x) => x.category === k); const n = vis.filter((x) => x.category === k).length;
-              return `<button class="panel${i === 0 ? ' active' : ''}" data-act="panel" data-cat="${esc(k)}"><div class="frame">${media(p.images && p.images[0], p.tone, kindOf(p))}</div><span class="p-no">${pad(i)}</span><span class="p-vert">${esc(k)}</span><span class="p-info"><b>${esc(k)}</b><small>${n} model · lihat koleksi</small><i>→</i></span></button>`; }).join('')}
+            ${cats.map((k, i) => { const p = vis.find((x) => x.category === k.name); const n = vis.filter((x) => x.category === k.name).length;
+              return `<button class="panel${i === 0 ? ' active' : ''}" data-act="panel" data-cat="${esc(k.name)}"><div class="frame">${media(k.image || (p.images && p.images[0]), p.tone, k.fig || kindOf(p))}</div><span class="p-no">${pad(i)}</span><span class="p-vert">${esc(k.name)}</span><span class="p-info"><b>${esc(k.name)}</b><small>${k.text ? esc(k.text) : n + ' model · lihat koleksi'}</small><i>→</i></span></button>`; }).join('')}
           </div>
         </div>
       </section>`;
@@ -430,7 +430,7 @@
   function tplCatalog() {
     const c = S.catalog, vis = visibleProducts();
     const count = (cat) => vis.filter((p) => p.category === cat).length;
-    const cats = ['Semua', ...c.categories.filter((k) => count(k) > 0)];
+    const cats = ['Semua', ...c.categories.map((k) => k.name).filter((k) => count(k) > 0)];
     if (!cats.includes(ui.cat)) ui.cat = 'Semua';
     return `
       <section class="section catalog-sec" id="koleksi" ${section('catalog')}>

@@ -34,8 +34,13 @@
     look: () => ({ label: 'Suasana baru', text: 'Keterangan singkat.', image: '' }),
     quote: () => ({ name: 'Nama', city: 'Kota', text: 'Isi testimoni.' }),
     faq: () => ({ q: 'Pertanyaan baru?', a: 'Jawaban.' }),
-    category: () => 'Kategori baru',
-    product: () => ({ id: 'p' + Date.now().toString(36), name: 'Produk baru', category: S.catalog.categories[0] || '', price: 199000, compare: 0, badge: '', fig: '', shopee: '', lynk: '', tone: '#CFC7B8', images: [], sizes: 'S, M, L, XL', colors: '', desc: '', soldout: false, hidden: false })
+    category: () => {
+      const have = new Set(S.catalog.categories.map((c) => c.name.trim().toLowerCase()));
+      let name = 'Kategori baru', k = 2;
+      while (have.has(name.toLowerCase())) name = 'Kategori baru ' + k++;
+      return { name, text: '', image: '', fig: '' };
+    },
+    product: () => ({ id: 'p' + Date.now().toString(36), name: 'Produk baru', category: (S.catalog.categories[0] || {}).name || '', price: 199000, compare: 0, badge: '', fig: '', shopee: '', lynk: '', tone: '#CFC7B8', images: [], sizes: 'S, M, L, XL', colors: '', desc: '', soldout: false, hidden: false })
   };
 
   /* ---------- komponen form ---------- */
@@ -174,6 +179,31 @@
       group('Teks', fText('Judul', 'footer.title') + fText('Deskripsi', 'footer.text', { area: true, rows: 2 }) + fText('Teks tombol', 'footer.cta') + fText('Hak cipta', 'footer.copyright'))
   };
 
+  // kartu editor satu kategori: nama, teks, foto sampul, ilustrasi, urutan, hapus
+  function catalogCats() {
+    const cs = S.catalog.categories;
+    const cards = cs.map((c, i) => {
+      const b = `catalog.categories.${i}`;
+      const n = S.catalog.products.filter((p) => p.category === c.name).length;
+      return `
+        <div class="item cat-item">
+          <div class="item-h"><span>${esc(c.name || 'Kategori')} · ${n} produk${n ? '' : ' — belum tampil di situs'}</span>
+            <span class="ops">
+              <button class="ic" data-act="move" data-path="catalog.categories" data-i="${i}" data-d="-1" ${i === 0 ? 'disabled' : ''} aria-label="Naik">↑</button>
+              <button class="ic" data-act="move" data-path="catalog.categories" data-i="${i}" data-d="1" ${i === cs.length - 1 ? 'disabled' : ''} aria-label="Turun">↓</button>
+              <button class="ic danger" data-act="delcat" data-i="${i}" aria-label="Hapus kategori">✕</button>
+            </span></div>
+          <label class="fld"><span>Nama kategori</span><input type="text" class="catname" data-bind="${b}.name" data-cat="${i}" data-old="${esc(c.name)}" data-valid="${esc(c.name)}" value="${esc(c.name)}"></label>
+          ${fText('Teks pendek di kartu (opsional)', b + '.text', { ph: 'Contoh: Untuk salat & kajian', hint: 'Tampil di kartu kategori pada situs. Kosong = jumlah model.' })}
+          ${fImage('Foto sampul kartu (kosong = foto produk pertama)', b + '.image')}
+          ${fSelectKV('Bentuk ilustrasi (bila belum ada foto sama sekali)', b + '.fig', [['', 'Otomatis (dari produk)'], ...FIGS.slice(1)])}
+        </div>`;
+    }).join('');
+    return (cs.length ? cards : '<p class="sub">Belum ada kategori. Tambahkan satu untuk mulai mengelompokkan produk.</p>') +
+      `<button class="add-btn" data-act="addcat">+ Tambah kategori</button>` +
+      '<p class="sub" style="margin-top:0">Mengganti nama kategori otomatis ikut mengubah produk di dalamnya. Kategori tanpa produk tidak ditampilkan di situs.</p>';
+  }
+
   function catalogPanel() {
     const ps = S.catalog.products;
     return head('Katalog', 'Atur produk, kategori, dan foto.') +
@@ -190,11 +220,8 @@
           </div>`).join('') +
         `<button class="add-btn" data-act="addp">+ Tambah produk</button>`,
         `<span style="font-weight:500;letter-spacing:0;text-transform:none">${ps.length} item</span>`) +
-      group('Kategori', S.catalog.categories.map((c, i) => `
-          <div class="catrow">
-            <input type="text" data-bind="catalog.categories.${i}" data-cat="${i}" data-old="${esc(c)}" value="${esc(c)}" aria-label="Kategori ${i + 1}">
-            <button class="ic danger" data-act="delcat" data-i="${i}" aria-label="Hapus kategori">✕</button>
-          </div>`).join('') + `<button class="add-btn" data-act="add" data-path="catalog.categories" data-tpl="category">+ Tambah kategori</button>`) +
+      group('Kategori', catalogCats(),
+        `<span style="font-weight:500;letter-spacing:0;text-transform:none">${S.catalog.categories.length} kategori</span>`) +
       group('Produk unggulan (blok gelap)',
         fSelectKV('Produk yang disorot', 'featured.id', S.catalog.products.map((p) => [p.id, p.name])) +
         fText('Label kecil', 'featured.eyebrow') + fText('Judul', 'featured.title', { area: true, rows: 2 }) +
@@ -221,7 +248,7 @@
       ${group('Informasi',
         fText('Nama produk', b + '.name') +
         fSelectKV('Bentuk ilustrasi (bila belum ada foto)', b + '.fig', FIGS) +
-        `<div class="row2">${fSelect('Kategori', b + '.category', S.catalog.categories)}${fSelect('Label', b + '.badge', ['', 'Baru', 'Best seller', 'Diskon', 'Terbatas'])}</div>` +
+        `<div class="row2">${fSelect('Kategori', b + '.category', S.catalog.categories.map((c) => c.name))}${fSelect('Label', b + '.badge', ['', 'Baru', 'Best seller', 'Diskon', 'Terbatas'])}</div>` +
         `<div class="row2">${fText('Harga (Rp)', b + '.price', { num: true, type: 'number' })}${fText('Harga coret (opsional)', b + '.compare', { num: true, type: 'number' })}</div>` +
         fText('Deskripsi', b + '.desc', { area: true, rows: 4 }) +
         fText('Ukuran', b + '.sizes', { hint: 'Pisahkan dengan koma. Contoh: S, M, L, XL' }) +
@@ -401,8 +428,13 @@
       if (j < 0 || j >= a.length) return;
       [a[i], a[j]] = [a[j], a[i]]; changed(); renderEditor();
     },
+    addcat() {
+      S.catalog.categories.push(NEW.category()); changed(); renderAll();
+      const ins = document.querySelectorAll('.catname'), last = ins[ins.length - 1];
+      if (last) { last.scrollIntoView({ block: 'center', behavior: 'smooth' }); last.focus(); last.select(); }
+    },
     delcat(el) {
-      const i = +el.dataset.i, name = S.catalog.categories[i];
+      const i = +el.dataset.i, name = S.catalog.categories[i].name;
       const used = S.catalog.products.filter((p) => p.category === name).length;
       if (used && !confirm(`Kategori “${name}” dipakai ${used} produk. Hapus tetap? Produk tersebut jadi tanpa kategori.`)) return;
       S.catalog.categories.splice(i, 1);
@@ -481,7 +513,7 @@
     if (el.dataset.type === 'num') v = Math.max(0, Number(v) || 0);
     if (el.dataset.type === 'lines') v = v.split('\n');
     // ganti nama kategori → ikut perbarui produk
-    if (el.dataset.cat !== undefined) {
+    if (el.dataset.cat !== undefined && v.trim()) {
       const old = el.dataset.old;
       S.catalog.products.forEach((p) => { if (p.category === old) p.category = v; });
       el.dataset.old = v;
@@ -495,7 +527,18 @@
   // checkbox & select yang mengubah tampilan panel
   document.addEventListener('change', (e) => {
     const el = e.target;
-    if (el.dataset && el.dataset.bind && el.dataset.cat !== undefined) renderEditor();
+    if (el.dataset && el.dataset.bind && el.dataset.cat !== undefined) {
+      // selesai mengetik nama kategori: rapikan spasi, tolak kosong / kembar
+      const i = +el.dataset.cat, cur = el.dataset.old, valid = el.dataset.valid;
+      let v = el.value.trim(), bad = false;
+      const dup = S.catalog.categories.some((c, k) => k !== i && (c.name || '').trim().toLowerCase() === v.toLowerCase());
+      if (!v || dup) { toast(!v ? 'Nama kategori tidak boleh kosong' : `Kategori “${v}” sudah ada`); v = valid; bad = true; }
+      S.catalog.categories[i].name = v;
+      S.catalog.products.forEach((p) => { if (p.category === cur) p.category = v; });
+      el.dataset.old = v; el.dataset.valid = v;
+      changed();
+      if (bad || el.value !== v) renderEditor();
+    }
   });
 
   $('#jsonInput').addEventListener('change', async (e) => {
