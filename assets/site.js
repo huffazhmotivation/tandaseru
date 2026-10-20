@@ -666,12 +666,23 @@
           <h3>${esc(p.name)}</h3>
           <p class="price">${rupiah(p.price)}${p.compare > p.price ? `<s>${rupiah(p.compare)}</s>` : ''}</p>
           <p class="desc">${nl(p.desc)}</p>
-          ${sizes.length ? `<div class="opt"><h4>Ukuran<b>${esc(ui.size)}</b></h4><div class="opts">${sizes.map((s) => `<button class="pill" data-act="size" data-v="${esc(s)}" aria-pressed="${s === ui.size}">${esc(s)}</button>`).join('')}</div></div>` : ''}
-          ${colors.length ? `<div class="opt"><h4>Warna<b>${esc(ui.color)}</b></h4><div class="opts">${colors.map((s) => `<button class="pill" data-act="color" data-v="${esc(s)}" aria-pressed="${s === ui.color}">${esc(s)}</button>`).join('')}</div></div>` : ''}
+          ${sizes.length ? `<div class="opt" data-opt="size"><h4>Ukuran<b>${esc(ui.size)}</b></h4><div class="opts">${sizes.map((s) => `<button class="pill" data-act="size" data-v="${esc(s)}" aria-pressed="${s === ui.size}">${esc(s)}</button>`).join('')}</div></div>` : ''}
+          ${colors.length ? `<div class="opt" data-opt="color"><h4>Warna<b>${esc(ui.color)}</b></h4><div class="opts">${colors.map((s) => `<button class="pill" data-act="color" data-v="${esc(s)}" aria-pressed="${s === ui.color}">${esc(s)}</button>`).join('')}</div></div>` : ''}
           ${tplChannels(p)}
         </div>
       </div>`;
     fitSheet();
+  }
+
+  // klik ukuran/warna: ubah warna tombol & teks pilihan saja, tanpa membangun ulang panel (tidak berkedip)
+  function updateChoice(kind) {
+    const p = product(); if (!p) return;
+    const m = $('#modal');
+    m.querySelectorAll(`.pill[data-act="${kind}"]`).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === ui[kind])));
+    const lb = m.querySelector(`.opt[data-opt="${kind}"] h4 b`); if (lb) lb.textContent = ui[kind];
+    const wa = m.querySelector('.chn.whatsapp'); if (wa && !p.soldout) wa.setAttribute('href', waLink(orderText(p)));
+    const hint = m.querySelector('[data-hint="size"]');
+    if (hint) { const was = hint.hidden; hint.hidden = !!ui.size; if (was !== hint.hidden) fitSheet(); }
   }
 
   /* panel selalu muat satu layar: rapatkan bertahap sampai tidak perlu scroll */
@@ -731,9 +742,9 @@
       if (lynk) add('lynk', lynk, chOf('lynk').label || 'Beli via Lynk.id', chOf('lynk').note || '');
       if (waOn()) add('whatsapp', waLink(orderText(p)), chOf('whatsapp').label || 'Pesan via WhatsApp', chOf('whatsapp').note || '');
     }
-    const needSize = !p.soldout && list(p.sizes).length && !ui.size;
+    const hasSize = !p.soldout && list(p.sizes).length > 0;
     return `<div class="opt"><h4>${esc((S.checkout && S.checkout.title) || 'Pesan lewat')}</h4>
-      ${needSize ? '<p class="hint">Pilih ukuran dulu agar pesanan Anda tepat.</p>' : ''}
+      ${hasSize ? `<p class="hint" data-hint="size"${ui.size ? ' hidden' : ''}>Pilih ukuran dulu agar pesanan Anda tepat.</p>` : ''}
       <div class="chans">${rows.length ? rows.join('') : '<p class="hint">Belum ada kanal pesan yang aktif.</p>'}</div></div>
       <p class="note">${esc((S.checkout && S.checkout.footnote) || '')}</p>`;
   }
@@ -812,7 +823,7 @@
       if (act === 'gprev') galGo(ui.img - 1);
       if (act === 'gnext') galGo(ui.img + 1);
       if (act === 'gdot') galGo(+el.dataset.i);
-      if (act === 'size' || act === 'color') { const v = el.dataset.v; ui[act] = ui[act] === v ? '' : v; renderModal(); }
+      if (act === 'size' || act === 'color') { const v = el.dataset.v; ui[act] = ui[act] === v ? '' : v; updateChoice(act); }
       return;
     }
     if (e.target.id === 'modal') closeModal();
