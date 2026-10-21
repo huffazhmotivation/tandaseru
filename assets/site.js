@@ -325,6 +325,10 @@
   };
   const FLAME = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c1 3.500 5 5.500 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 1.500.700 2.500 1.500 2.500C10.500 9 12 6.500 12 3Z"/></svg>';
   const COPY = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.500"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>';
+  const cdMarkup = () => {
+    const cells = '<s>9</s>' + '0123456789'.split('').map((n) => `<s>${n}</s>`).join(''), dg = `<span class="dg"><i>${cells}</i></span>`;
+    return [['d', 'Hari'], ['h', 'Jam'], ['m', 'Menit'], ['s', 'Detik']].map(([k, l]) => `<div class="cdb c-${k}"><span class="dgs" data-cd="${k}">${dg}${dg}</span><small>${l}</small></div>`).join('<em class="cdsep" aria-hidden="true"><u></u><u></u></em>');
+  };
   function tplPromo() {
     if (!promoOn()) return '';
     const p = S.promo, lines = String(p.title || '').split('\n').filter((l) => l.trim());
@@ -333,7 +337,7 @@
     const ext = /^https?:/i.test(href);
     return `
       <section class="promo-sec" id="promo" ${section('promo')}>
-        <div class="wrap"><div class="promo rv">
+        <div class="wrap"><div class="promo rv"><i class="pfx" aria-hidden="true"></i>
           <div class="promo-l">
             <span class="pbadge">${FLAME}${esc(p.badge)}</span>
             <h2 class="ptitle">${title}</h2>
@@ -345,10 +349,62 @@
           </div>
           <div class="promo-r">
             ${p.percent ? `<p class="plabel">${esc(p.percentLabel)}</p><div class="pnum">${esc(p.percent)}</div>` : ''}
-            ${p.showCountdown && p.endsAt ? `<p class="plabel clock">Berakhir dalam</p><div class="cd" data-end="${esc(p.endsAt)}">${[['d', 'Hari'], ['h', 'Jam'], ['m', 'Menit'], ['s', 'Detik']].map(([k, l]) => `<div class="cdb"><b data-cd="${k}">00</b><small>${l}</small></div>`).join('')}</div>` : ''}
+            ${p.showCountdown && p.endsAt ? `<p class="plabel clock">Berakhir dalam</p><div class="cd" role="timer" data-end="${esc(p.endsAt)}">${cdMarkup()}<i class="fuse"><b></b></i><span class="cdwhen"></span></div>` : ''}
           </div>
         </div></div>
       </section>`;
+  }
+  function promoBurst(btn) {
+    const host = btn.closest('.promo'); if (!host || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const hr = host.getBoundingClientRect(), br = btn.getBoundingClientRect();
+    const cx = br.left - hr.left + br.width - 24, cy = br.top - hr.top + br.height / 2;
+    for (let i = 0; i < 16; i++) {
+      const s = document.createElement('span'); s.className = 'spark';
+      const a = Math.random() * Math.PI * 2, dist = 38 + Math.random() * 62;
+      s.style.cssText = `left:${cx}px;top:${cy}px;--dx:${(Math.cos(a) * dist).toFixed(1)}px;--dy:${(Math.sin(a) * dist - 18).toFixed(1)}px;--r:${Math.round(Math.random() * 360)}deg;--c:${['var(--gold)', '#fff', 'var(--accent)'][i % 3]}`;
+      host.appendChild(s); setTimeout(() => s.remove(), 900);
+    }
+  }
+  function promoFx() {
+    const pr = $('.promo'); if (!pr || pr.dataset.fx) return; pr.dataset.fx = '1';
+    const setPos = (e) => { const r = pr.getBoundingClientRect(); pr.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100).toFixed(1) + '%'); pr.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100).toFixed(1) + '%'); };
+    pr.addEventListener('pointermove', setPos, { passive: true });
+    pr.addEventListener('pointerdown', (e) => { setPos(e); pr.classList.add('press'); clearTimeout(pr._pt); pr._pt = setTimeout(() => pr.classList.remove('press'), 700); }, { passive: true });
+    const cdEl = pr.querySelector('.cd');
+    if (cdEl) cdEl.addEventListener('click', () => {
+      const w = cdEl.querySelector('.cdwhen'), d = new Date(cdEl.dataset.end); if (!w || isNaN(d)) return;
+      w.textContent = 'Berakhir ' + d.toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(',', ' ·');
+      cdEl.classList.add('date'); clearTimeout(cdEl._t); cdEl._t = setTimeout(() => cdEl.classList.remove('date'), 2800);
+    });
+    const num = pr.querySelector('.pnum'); if (!num || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const txt = num.textContent, m = txt.match(/\d+([.,]\d+)?/); if (!m) return;
+    const target = parseFloat(m[0].replace(',', '.')), dec = m[1] ? m[1].length - 1 : 0, comma = m[0].includes(',');
+    const fmt = (v) => txt.replace(m[0], comma ? v.toFixed(dec).replace('.', ',') : v.toFixed(dec));
+    const run = () => {
+      const t0 = performance.now(), D = 1200;
+      const step = (t) => { const k = Math.min(1, (t - t0) / D), e = 1 - Math.pow(1 - k, 3); num.textContent = fmt(target * e); if (k < 1) requestAnimationFrame(step); else { num.textContent = txt; num.style.minWidth = ''; num.classList.add('pop'); setTimeout(() => num.classList.remove('pop'), 600); } };
+      requestAnimationFrame(step);
+    };
+    const r = pr.getBoundingClientRect();
+    if (r.top < innerHeight * .6 && r.bottom > 0) { num.style.minWidth = num.offsetWidth + 'px'; run(); return; }
+    num.style.minWidth = num.offsetWidth + 'px'; num.textContent = fmt(0);
+    if (!('IntersectionObserver' in window)) { num.textContent = txt; num.style.minWidth = ''; return; }
+    const io = new IntersectionObserver((es) => { if (es.some((x) => x.isIntersecting)) { io.disconnect(); run(); } }, { threshold: .5 });
+    io.observe(pr);
+  }
+  function setDrum(el, val) {
+    const t = String(Math.min(99, val)).padStart(2, '0'), old = el.dataset.v;
+    if (old === t) return; el.dataset.v = t;
+    [...el.children].forEach((dg, i) => {
+      const strip = dg.firstElementChild, n = +t[i], o = old == null ? n : +old[i];
+      if (old == null) { strip.classList.add('nt'); strip.style.setProperty('--n', n); void strip.offsetWidth; strip.classList.remove('nt'); return; }
+      if (n === o) return;
+      clearTimeout(strip._t);
+      if (n === 9 && o === 0) {
+        strip.style.setProperty('--n', -1);
+        strip._t = setTimeout(() => { strip.classList.add('nt'); strip.style.setProperty('--n', 9); void strip.offsetWidth; strip.classList.remove('nt'); }, 660);
+      } else strip.style.setProperty('--n', n);
+    });
   }
   function tickPromo() {
     const cd = $('.cd'); if (!cd) return;
@@ -356,7 +412,13 @@
     if (isNaN(ms)) return;
     if (ms <= 0) { const sec = $('#promo'); if (sec) sec.remove(); return; }
     const v = { d: Math.floor(ms / 864e5), h: Math.floor(ms / 36e5) % 24, m: Math.floor(ms / 6e4) % 60, s: Math.floor(ms / 1e3) % 60 };
-    for (const k in v) { const el = cd.querySelector(`[data-cd="${k}"]`); if (el) el.textContent = String(v[k]).padStart(2, '0'); }
+    const pr = $('.promo'); if (pr) { pr.classList.toggle('hot', ms < 864e5); pr.classList.toggle('hotter', ms < 36e5); }
+    for (const k in v) { const el = cd.querySelector(`[data-cd="${k}"]`); if (el) setDrum(el, v[k]); }
+    const fuse = cd.querySelector('.fuse'); if (fuse) {
+      const f = (ms % 6e4) / 6e4, wrap = cd._f != null && f > cd._f + .05; cd._f = f;
+      if (wrap) fuse.classList.add('nt'); fuse.style.setProperty('--f', f.toFixed(4)); fuse.firstElementChild.style.setProperty('--f', f.toFixed(4));
+      if (wrap) { void fuse.offsetWidth; fuse.classList.remove('nt'); }
+    }
   }
 
   function tplLookbook() {
@@ -597,7 +659,7 @@
     $('#app').innerHTML =
       `<div id="top"></div>` + tplNav() + tplHero() + tplTicker() + tplCategories() + tplPromo() + tplFeatured() + tplCatalog() + tplLookbook() + tplValues() +
       tplAbout() + tplSteps() + tplTestimonials() + tplFaq() + tplFooter();
-    startFeat(); startDeck(); tickPromo();
+    startFeat(); startDeck(); tickPromo(); promoFx();
     const heroEl = $('.hero');
     if (rendered) {
       if (heroEl) heroEl.classList.add('go', 'na');
@@ -800,7 +862,7 @@
       if (act === 'dprev') { setDeck(ui.deck - 1, -1); startDeck(); }
       if (act === 'ddot') { const t = +el.dataset.i; setDeck(t, t >= ui.deck ? 1 : -1); startDeck(); }
       if (act === 'copy') {
-        const code = el.dataset.code, done = () => { const sm = el.querySelector('small'); if (sm) { sm.textContent = 'Tersalin ✓'; setTimeout(() => (sm.textContent = 'Kode'), 1800); } };
+        const code = el.dataset.code, done = () => { const sm = el.querySelector('small'), cb = el.querySelector('b'); el.classList.add('copied'); if (sm) sm.textContent = 'Tersalin ✓'; if (cb) cb.textContent = 'Tersalin!'; promoBurst(el); try { navigator.vibrate && navigator.vibrate(14); } catch (e) {} clearTimeout(el._t); el._t = setTimeout(() => { el.classList.remove('copied'); if (sm) sm.textContent = 'Kode'; if (cb) cb.textContent = code; }, 1800); };
         if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code).then(done, done);
         else { const t = document.createElement('textarea'); t.value = code; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); } catch (e) {} t.remove(); done(); }
       }

@@ -1029,3 +1029,214 @@ input, select, textarea, .field { font-size: 16px; }
   .promo-sec .promo .coupon i { width: 36px; height: 36px; flex: none; display: grid; place-items: center; }
   .promo-sec .promo .coupon svg { width: 16px; height: 16px; }
 }
+
+/* =====================================================================
+   v7 — (1) HP tidak bisa geser kiri-kanan  (2) promo interaktif  (3) Best Seller desktop rapi
+   ===================================================================== */
+
+/* (1) kunci lebar halaman: tidak ada yang boleh melebihi layar */
+html { overflow-x: hidden; overflow-x: clip; max-width: 100%; }
+body { overflow-x: hidden; overflow-x: clip; max-width: 100%; position: relative; }
+.hero, .section, .promo-sec, .catalog-sec, .featured { overflow-x: clip; }
+@media (max-width: 900px) {
+  /* tumpukan kartu foto hero (miring + bergeser) sebelumnya melewati tepi kanan layar */
+  .hero-visual { padding-right: 15%; }
+  .deck-seal { right: 2%; }
+}
+
+/* (2) panel promo interaktif */
+.promo-sec .promo .pfx { position: absolute; inset: 0; z-index: 1; pointer-events: none; border-radius: inherit; overflow: hidden; opacity: .6; mix-blend-mode: soft-light; transition: opacity .35s; background: radial-gradient(260px circle at var(--mx, 78%) var(--my, 18%), rgba(255, 255, 255, .7), transparent 62%); }
+.promo-sec .promo:hover .pfx, .promo-sec .promo.press .pfx { opacity: 1; }
+.promo-sec .promo .pfx::after { content: ''; position: absolute; top: -20%; bottom: -20%; left: -50%; width: 34%; transform: skewX(-20deg); background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .24), transparent); animation: pshine 6.5s ease-in-out 1.6s infinite; }
+@keyframes pshine { 0%, 60% { left: -50%; } 100% { left: 135%; } }
+
+.promo-sec .promo .cdb { position: relative; overflow: hidden; perspective: 240px; }
+.promo-sec .promo .cdb b { display: block; transform-origin: 50% 100%; font-variant-numeric: tabular-nums; }
+.promo-sec .promo .cdb.flip b { animation: cdflip .5s cubic-bezier(.2, .8, .2, 1); }
+@keyframes cdflip { 0% { transform: rotateX(-85deg) translateY(-30%); opacity: 0; filter: blur(2px); } 60% { opacity: 1; } 100% { transform: none; filter: none; } }
+.promo-sec .promo .cdp { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--gold); transform-origin: 0 50%; transform: scaleX(var(--f, 1)); border-radius: 0 3px 3px 0; transition: transform 1s linear; }
+.promo-sec .promo .cdb.c-d .cdp { display: none; }
+.promo-sec .promo .cdb.c-s .cdp { transition: none; }
+.promo-sec .promo .cdb.c-s .cdp.run { animation: cdsec 1s linear forwards; }
+@keyframes cdsec { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+.promo-sec .promo.hot .cdb.c-s { animation: cdhot 1s ease-in-out infinite; }
+@keyframes cdhot { 0%, 100% { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14), 0 0 0 0 transparent; } 50% { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 75%, transparent), 0 0 18px 0 color-mix(in srgb, var(--gold) 55%, transparent); } }
+.promo-sec .promo.hot .pbadge svg { animation: pflick 1.4s ease-in-out infinite; transform-origin: 50% 90%; }
+@keyframes pflick { 0%, 100% { transform: scale(1) rotate(0); } 30% { transform: scale(1.2) rotate(-7deg); } 60% { transform: scale(.94) rotate(6deg); } }
+
+.promo-sec .promo .pnum { transform-origin: 0 50%; }
+.promo-sec .promo .pnum.pop { animation: npop .55s cubic-bezier(.2, 1.6, .4, 1); }
+@keyframes npop { 50% { transform: scale(1.07); } }
+.promo-sec .promo .btn .ar { transition: transform .35s cubic-bezier(.2, .8, .2, 1), background .3s; }
+.promo-sec .promo .btn:hover .ar { transform: translateX(3px); }
+
+.promo-sec .promo .coupon { transition: background .25s, border-color .25s, color .25s, transform .2s; }
+.promo-sec .promo .coupon:active { transform: scale(.97); }
+.promo-sec .promo .coupon i { display: grid; place-items: center; transition: transform .5s cubic-bezier(.2, .8, .2, 1), background .25s; }
+.promo-sec .promo .coupon.copied { background: var(--gold); border-style: solid; border-color: var(--gold); color: var(--ink); }
+.promo-sec .promo .coupon.copied i { background: var(--ink); transform: rotate(360deg) scale(1.06); }
+.promo-sec .promo .coupon.copied i svg { display: none; }
+.promo-sec .promo .coupon.copied i::before { content: '✓'; font-size: 17px; font-weight: 800; line-height: 1; color: var(--gold); }
+.promo-sec .promo .spark { position: absolute; z-index: 6; width: 7px; height: 7px; margin: -3px 0 0 -3px; border-radius: 2px; background: var(--c, #fff); pointer-events: none; animation: spark .85s cubic-bezier(.15, .8, .3, 1) forwards; }
+@keyframes spark { 0% { transform: translate(0, 0) rotate(0) scale(.4); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) rotate(var(--r)) scale(1); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .promo-sec .promo .pfx::after, .promo-sec .promo .cdb.flip b, .promo-sec .promo .cdp.run, .promo-sec .promo.hot .cdb.c-s, .promo-sec .promo.hot .pbadge svg, .promo-sec .promo .pnum.pop, .promo-sec .promo .spark { animation: none !important; }
+}
+
+/* (3) Best Seller (#pilihan) di desktop: foto setinggi teks, jarak rapat, tipografi proporsional */
+@media (min-width: 901px) {
+  .featured .feat-card { padding: clamp(28px, 3.6vw, 56px); }
+  .featured .feat-grid { grid-template-columns: minmax(0, .86fr) minmax(0, 1.14fr); gap: clamp(32px, 4.4vw, 72px); align-items: stretch; }
+  .featured .feat-art { max-width: none; width: auto; margin: 0; align-self: stretch; min-height: 440px; }
+  .featured .feat-stage { position: absolute; inset: 0; aspect-ratio: auto; }
+  .featured .feat-stage .offset { transform: translate(10px, 10px); }
+  .featured .feat-art::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 28%; z-index: 3; pointer-events: none; border-radius: 0 0 var(--r-l) var(--r-l); background: linear-gradient(to top, rgba(0, 0, 0, .38), transparent); }
+  .featured .feat-count { left: 20px; bottom: 16px; z-index: 4; font-size: 13px; color: rgba(255, 255, 255, .9); text-shadow: 0 1px 10px rgba(0, 0, 0, .4); }
+  .featured .feat-count b { font-size: 30px; color: #fff; }
+  .featured .feat-copy { align-self: center; min-width: 0; }
+  .featured .feat-copy .h2 { font-size: clamp(30px, 3.2vw, 50px); line-height: 1.08; margin: 14px 0 18px; max-width: 16ch; }
+  .featured .fs-d { max-width: 52ch; margin-bottom: 22px; }
+  .featured .feat-meta { padding-top: 18px; margin-bottom: 22px; }
+  .featured .feat-meta b { font-size: 32px; }
+  .featured .feat-nav { margin-top: 28px; gap: 10px; }
+  .featured .fn { padding: 14px 14px 13px; }
+}
+
+/* =====================================================================
+   v8 — TIMER PROMO BARU: "tiket kupon" + angka gulung odometer + sumbu api
+   ===================================================================== */
+.promo-sec .promo .cd {
+  --notch: 6px;
+  position: relative; display: flex; align-items: center; justify-content: space-between; gap: 0;
+  width: 100%; max-width: 380px; box-sizing: border-box; margin: 0; padding: 12px 22px 18px;
+  font-size: clamp(24px, 2.5vw, 34px); line-height: 1; cursor: pointer; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ink) 86%, #fff) 0%, var(--ink) 62%);
+  border-radius: 18px; box-shadow: none;
+  -webkit-mask: radial-gradient(circle var(--notch) at 0 50%, transparent 97%, #000) left / 51% 100% no-repeat, radial-gradient(circle var(--notch) at 100% 50%, transparent 97%, #000) right / 51% 100% no-repeat;
+          mask: radial-gradient(circle var(--notch) at 0 50%, transparent 97%, #000) left / 51% 100% no-repeat, radial-gradient(circle var(--notch) at 100% 50%, transparent 97%, #000) right / 51% 100% no-repeat;
+}
+.promo-sec .promo .cdb { all: unset; display: flex; flex-direction: column; align-items: center; gap: 5px; box-sizing: border-box; }
+.promo-sec .promo .cdb small { display: block; margin: 0; font-size: 8px; line-height: 1; letter-spacing: .14em; text-transform: uppercase; color: rgba(255, 255, 255, .55); font-weight: 600; }
+.promo-sec .promo .dgs { display: inline-flex; }
+.promo-sec .promo .dg { position: relative; display: block; width: .64em; height: 1.18em; overflow: hidden; text-align: center;
+  -webkit-mask: linear-gradient(transparent, #000 24%, #000 76%, transparent); mask: linear-gradient(transparent, #000 24%, #000 76%, transparent); }
+.promo-sec .promo .dg i { display: block; font-style: normal; transform: translateY(calc((var(--n, 0) + 1) * -1.18em)); transition: transform .62s cubic-bezier(.34, 1.45, .5, 1); will-change: transform; }
+.promo-sec .promo .dg i.nt { transition: none; }
+.promo-sec .promo .dg s { display: block; height: 1.18em; line-height: 1.18em; text-decoration: none; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--gold); }
+.promo-sec .promo .c-s .dg s { color: #fff; }
+
+.promo-sec .promo .cdsep { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: .17em; height: 1.18em; align-self: flex-start; font-style: normal; animation: cdblink 1s steps(1) infinite; }
+.promo-sec .promo .cdsep u { display: block; width: .13em; height: .13em; min-width: 3px; min-height: 3px; border-radius: 50%; background: var(--accent); text-decoration: none; }
+@keyframes cdblink { 0% { opacity: 1; } 55% { opacity: .22; } }
+
+/* sumbu api: memendek selama 1 menit, ujungnya berpercik */
+.promo-sec .promo .fuse { position: absolute; left: 22px; right: 22px; bottom: 8px; height: 3px; border-radius: 3px; background: rgba(255, 255, 255, .14); }
+.promo-sec .promo .fuse b { position: absolute; inset: 0; border-radius: inherit; transform-origin: 0 50%; transform: scaleX(var(--f, 1)); background: linear-gradient(90deg, transparent, var(--accent) 35%, var(--gold)); transition: transform 1s linear; }
+.promo-sec .promo .fuse::after { content: ''; position: absolute; top: 50%; left: calc(var(--f, 1) * 100%); width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%; background: #fff; box-shadow: 0 0 6px 2px var(--gold), 0 0 14px 4px color-mix(in srgb, var(--accent) 70%, transparent); transition: left 1s linear; animation: cdspark .22s ease-in-out infinite alternate; }
+.promo-sec .promo .fuse.nt b, .promo-sec .promo .fuse.nt::after { transition: none; }
+@keyframes cdspark { from { transform: scale(.8); opacity: .85; } to { transform: scale(1.35); opacity: 1; } }
+
+/* tap tiket: tampil tanggal & jam berakhir */
+.promo-sec .promo .cdwhen { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 0 20px; border-radius: inherit; text-align: center; font-size: 11px; font-weight: 700; line-height: 1.3; letter-spacing: .07em; text-transform: uppercase; color: var(--gold); background: var(--ink); opacity: 0; pointer-events: none; transform: scale(.96); transition: opacity .3s, transform .3s; }
+.promo-sec .promo .cd.date .cdwhen { opacity: 1; transform: none; }
+
+/* < 24 jam: angka menyala */
+.promo-sec .promo.hot .cdb.c-s { animation: none; box-shadow: none; }
+.promo-sec .promo.hot .cd { box-shadow: 0 0 0 1px color-mix(in srgb, var(--gold) 45%, transparent); animation: cdhot2 1.6s ease-in-out infinite; }
+@keyframes cdhot2 { 50% { filter: drop-shadow(0 0 10px color-mix(in srgb, var(--gold) 60%, transparent)); } }
+.promo-sec .promo.hot .c-s .dg s { color: var(--gold); }
+
+@media (max-width: 900px) {
+  .promo-sec .promo .cd { grid-column: 2; grid-row: 4; align-self: stretch; justify-self: start; width: 100%; max-width: 360px; min-width: 0; padding: 8px 10px 13px; font-size: clamp(15px, 5.2vw, 21px); border-radius: 15px; --notch: 5px; }
+  .promo-sec .promo .cdb { gap: 4px; }
+  .promo-sec .promo .cdb small { font-size: 6.5px; letter-spacing: .1em; }
+  .promo-sec .promo .fuse { left: 10px; right: 10px; bottom: 5px; height: 2px; }
+  .promo-sec .promo .cdwhen { font-size: 9.5px; padding: 0 12px; }
+  .promo-sec .promo .promo-r > .plabel.clock:first-child + .cd { grid-column: 1 / -1; max-width: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .promo-sec .promo .dg i { transition: none; }
+  .promo-sec .promo .cdsep, .promo-sec .promo .fuse::after, .promo-sec .promo.hot .cd { animation: none; }
+}
+@media (max-width: 360px) {
+  .promo-sec .promo .pact { gap: 6px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .promo-sec .promo .pact .btn { padding: 0 4px 0 12px; font-size: 12px; gap: 2px; }
+  .promo-sec .promo .pact .btn .ar { width: 32px; height: 32px; font-size: 13px; }
+  .promo-sec .promo .pact .coupon { padding: 0 4px 0 12px; gap: 4px; }
+  .promo-sec .promo .coupon b { font-size: 12.5px; letter-spacing: .04em; }
+  .promo-sec .promo .coupon i { width: 32px; height: 32px; }
+}
+@media (min-width: 901px) { .promo-sec .promo .cd { margin-top: 10px; } }
+
+/* v8c — unit timer dirapatkan di tengah tiket; titik dua sejajar tengah angka */
+.promo-sec .promo .cd { width: fit-content; max-width: 100%; justify-content: center; gap: clamp(2px, 1.1vw, 7px); padding-left: clamp(8px, 2.6vw, 12px); padding-right: clamp(8px, 2.6vw, 12px); }
+.promo-sec .promo .fuse { left: clamp(8px, 2.6vw, 12px); right: clamp(8px, 2.6vw, 12px); }
+.promo-sec .promo .cdsep { align-self: flex-start; transform: translateY(.172em); }
+@media (min-width: 901px) { .promo-sec .promo .cd { gap: .45em; padding-left: 26px; padding-right: 26px; } .promo-sec .promo .fuse { left: 26px; right: 26px; } }
+
+/* =====================================================================
+   v9 — PERBAIKAN TAMPILAN HP & DESKTOP
+   (1) kartu produk hero di tengah, tidak mepet tepi  (2) topbar lebih kecil & berjarak dari tepi
+   (3) timer promo HP lebih lebar & proporsional      (4) panel kanan promo desktop diperbesar
+   ===================================================================== */
+@media (max-width: 900px) {
+  /* (1) kartu "Gamis Zayd" di foto hero: ketengah di atas foto */
+  .hero-visual .hv-look { left: 0; right: 7%; margin: 0 auto; width: max-content; max-width: calc(93% - 28px); bottom: 15%; }
+
+  /* (2) topbar: lebih ramping dan ada jarak kiri-kanan dari tepi layar */
+  .nav { padding-top: 10px; }
+  .nav-in { width: calc(100% - 28px); height: 54px; padding: 0 5px 0 22px; }
+  .burger { width: 42px; height: 42px; }
+  .menu { left: 14px; right: 14px; }
+
+  /* (3) timer promo: tetap berdampingan dengan 30%, tapi lebih lebar & tinggi seimbang */
+  .promo-sec .promo .promo-r > .plabel:not(.clock) { grid-column: 1; grid-row: 3; margin: 0 0 8px; }
+  .promo-sec .promo .promo-r > .plabel.clock { grid-column: 2; grid-row: 3; margin: 0 0 8px; }
+  .promo-sec .promo .pnum { grid-column: 1; grid-row: 4; font-size: clamp(50px, 14.6vw, 66px); letter-spacing: -.06em; }
+  .promo-sec .promo .cd { grid-column: 2; grid-row: 4; align-self: stretch; justify-self: stretch; width: 100%; max-width: none; min-width: 0; justify-content: space-evenly; gap: 0; padding: 10px 6px 17px; font-size: clamp(19px, 6.4vw, 27px); border-radius: 16px; --notch: 5px; }
+  .promo-sec .promo .cdb { gap: 5px; }
+  .promo-sec .promo .cdb small { font-size: clamp(7px, 2vw, 8.5px); letter-spacing: .08em; }
+  .promo-sec .promo .fuse { left: 12px; right: 12px; bottom: 6px; height: 2px; }
+  .promo-sec .promo .cdwhen { font-size: 10px; padding: 0 12px; }
+  .promo-sec .promo .pact { grid-row: 5; margin-top: 16px; }
+  .promo-sec .promo .promo-r > .plabel.clock:first-child { grid-column: 1 / -1; grid-row: 3; }
+  .promo-sec .promo .promo-r > .plabel.clock:first-child + .cd { grid-column: 1 / -1; grid-row: 4; }
+}
+
+/* (4) desktop: sisi kanan promo (30% + timer) diperbesar agar seimbang dengan sisi kiri */
+@media (min-width: 901px) {
+  .promo-sec .promo { grid-template-columns: minmax(0, 1.14fr) minmax(0, .86fr); gap: clamp(28px, 3.4vw, 60px); }
+  .promo-sec .promo .promo-r > .plabel { font-size: clamp(13px, 1.1vw, 16px); }
+  .promo-sec .promo .pnum { font-size: clamp(108px, 13.6vw, 230px); margin-top: 8px; }
+  .promo-sec .promo .promo-r > .plabel.clock { margin-top: clamp(22px, 2.4vw, 38px); }
+  .promo-sec .promo .cd { width: 100%; max-width: none; margin-top: 14px; justify-content: space-evenly; gap: 0; padding: clamp(18px, 1.7vw, 26px) clamp(20px, 2.6vw, 44px) clamp(28px, 2.6vw, 38px); font-size: clamp(34px, 3.8vw, 62px); border-radius: clamp(20px, 1.8vw, 28px); --notch: 9px; }
+  .promo-sec .promo .cdb { gap: clamp(8px, .8vw, 12px); }
+  .promo-sec .promo .cdb small { font-size: clamp(10px, .85vw, 13px); }
+  .promo-sec .promo .fuse { left: clamp(20px, 2.6vw, 44px); right: clamp(20px, 2.6vw, 44px); bottom: clamp(11px, 1.1vw, 16px); height: 4px; }
+  .promo-sec .promo .cdwhen { font-size: clamp(12px, 1.1vw, 16px); }
+}
+@media (max-width: 340px) {
+  .promo-sec .promo .pnum { font-size: 46px; }
+  .promo-sec .promo .cd { font-size: 16px; padding-left: 4px; padding-right: 4px; }
+  .promo-sec .promo .cdb small { font-size: 6.5px; letter-spacing: .04em; }
+}
+
+/* =====================================================================
+   v10 — RESPONSIF EXTRA: toolbar katalog, statistik "Tentang", area aman layar
+   ===================================================================== */
+.fab { right: max(20px, env(safe-area-inset-right, 0px)); bottom: max(20px, env(safe-area-inset-bottom, 0px)); }
+@media (max-width: 900px) {
+  /* kolom cari & urutan: muat di lebar layar, tidak terpotong */
+  .tools-right { min-width: 0; }
+  .tools-right .field { min-width: 0; flex: 1 1 0; width: auto; }
+  /* statistik: 3 kolom sama lebar, tanpa sisa kosong */
+  .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .stats > div { min-width: 0; padding: 14px 12px; border-radius: 20px; }
+  .stats b { font-size: clamp(16px, 4.9vw, 28px); white-space: nowrap; }
+  .stats span { display: block; line-height: 1.3; }
+}
+@media (max-width: 340px) {
+  .tools-right { flex-direction: column; }
+  .stats > div { padding: 12px 8px; }
+}
