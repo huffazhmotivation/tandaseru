@@ -1,5 +1,5 @@
 /* tandaseru — render landing page dari data */
-(function () {
+TSStore.ready.then(function () {
   const isPreview = new URLSearchParams(location.search).has('preview');
   const $ = (s, r = document) => r.querySelector(s);
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -964,6 +964,6 @@
   render();
   initFx();
   setInterval(tickPromo, 1000); tickPromo();
-})();
+});
 /* cegah zoom cubit/dobel-ketuk di iOS */
 ['gesturestart','gesturechange','gestureend'].forEach((t) => document.addEventListener(t, (e) => e.preventDefault()));

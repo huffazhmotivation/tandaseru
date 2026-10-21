@@ -1,10 +1,12 @@
 /* tandaseru — panel admin dengan preview langsung */
-(function () {
+TSStore.ready.then(function () {
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const rupiah = (n) => 'Rp' + new Intl.NumberFormat('id-ID').format(Number(n) || 0);
   const clone = TSStore.clone;
+  let LIMIT = 5 * 1048576; // diperbarui dari kapasitas penyimpanan browser yang sebenarnya
+  const fmtSize = (b) => (b >= 1073741824 ? (b / 1073741824).toFixed(1) + ' GB' : (b / 1048576).toFixed(1) + ' MB');
 
   /* ---------- state ---------- */
   const draft = TSStore.loadDraft();
@@ -262,10 +264,10 @@
   /* ---------- render ---------- */
   function renderTabs() {
     const used = JSON.stringify(S).length;
-    const mb = used / 1024 / 1024, pct = Math.min(100, (mb / 5) * 100);
+    const pct = Math.min(100, (used / LIMIT) * 100);
     $('#tabs').innerHTML = TABS.map(([id, name], i) =>
       `<button class="tab" data-act="tab" data-id="${id}" aria-current="${id === tab}"><small>${String(i + 1).padStart(2, '0')}</small>${name}</button>`).join('') +
-      `<div class="meter">Penyimpanan ${mb.toFixed(1)} / ±5 MB<div class="bar"><i class="${pct > 85 ? 'warn' : ''}" style="width:${pct}%"></i></div></div>`;
+      `<div class="meter">Penyimpanan ${fmtSize(used)} / ${fmtSize(LIMIT)}<div class="bar"><i class="${pct > 85 ? 'warn' : ''}" style="width:${pct}%"></i></div></div>`;
   }
   function renderEditor(keepScroll = true) {
     const ed = $('#editor'); const y = keepScroll ? ed.scrollTop : 0;
@@ -319,8 +321,8 @@
   }
   function renderTabsMeter() {
     const m = $('.meter'); if (!m) return;
-    const mb = JSON.stringify(S).length / 1024 / 1024, pct = Math.min(100, (mb / 5) * 100);
-    m.firstChild.textContent = `Penyimpanan ${mb.toFixed(1)} / ±5 MB`;
+    const used = JSON.stringify(S).length, pct = Math.min(100, (used / LIMIT) * 100);
+    m.firstChild.textContent = `Penyimpanan ${fmtSize(used)} / ${fmtSize(LIMIT)}`;
     const bar = $('.bar i', m); bar.style.width = pct + '%'; bar.classList.toggle('warn', pct > 85);
   }
   const toPreview = (msg) => { const w = $('#frame').contentWindow; if (w && previewReady) w.postMessage(msg, '*'); };
@@ -461,9 +463,12 @@
       S.catalog.products.splice(+el.dataset.i, 1); editing = null; changed(); renderAll();
       toPreview({ type: 'tandaseru:product', id: null });
     },
-    publish() {
-      try { TSStore.publish(S); } catch (e) {
-        toast('Penyimpanan penuh. Hapus beberapa foto atau gunakan foto lebih kecil.', true); return;
+    async publish() {
+      try { await TSStore.publish(S); } catch (e) {
+        toast(e && e.name === 'QuotaExceededError'
+          ? 'Penyimpanan perangkat penuh. Kosongkan ruang atau hapus beberapa foto.'
+          : 'Gagal menyimpan ke browser: ' + ((e && e.message) || e), true);
+        return;
       }
       TSStore.clearDraft(); dirty = false; setStatus(); toast('Tersimpan — situs sudah diperbarui');
     },
@@ -573,5 +578,6 @@
   frameEl.addEventListener('load', syncFrame);
   try { if (frameEl.contentDocument && frameEl.contentDocument.readyState === 'complete' && frameEl.contentDocument.location.href !== 'about:blank') syncFrame(); } catch (e) { /* abaikan */ }
   renderAll(); setStatus(); fit();
+  TSStore.limit().then((n) => { LIMIT = n; renderTabsMeter(); });
   if (draft) toast('Draf yang belum diterbitkan dipulihkan');
-})();
+});

@@ -7,7 +7,7 @@ Jalankan (wajib lewat server lokal agar admin & situs berbagi data):
 - Situs:  http://localhost:8080/index.html
 - Admin:  http://localhost:8080/admin.html
 
-Data & foto disimpan di localStorage browser (hanya untuk demo/uji).
+Data & foto disimpan di IndexedDB browser (kapasitas ratusan MB–GB, bukan lagi batas 5 MB localStorage; data lama dimigrasikan otomatis). Hanya untuk demo/uji.
 Untuk produksi, ganti assets/store.js dengan API/database + login admin.
 
 ## Kategori custom (Admin → Katalog → Kategori)

@@ -163,23 +163,99 @@
   }
   const merge = (base, over) => normCats(mergeDeep(base, over));
 
+  /* ---------- penyimpanan: IndexedDB (kuota jauh di atas 5 MB); localStorage hanya cadangan ---------- */
+  const IDB_NAME = KEY.split(':')[0] + '-store', IDB_TABLE = 'kv', FLAG = KEY + ':idb';
+  const mem = {};            // salinan data di memori agar load() tetap sinkron
+  let db = null, dbP = null;
+  const lsGet = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  const lsDel = (k) => { try { localStorage.removeItem(k); } catch (e) {} };
+  const lsFlag = () => { try { localStorage.setItem(FLAG, '1'); } catch (e) {} };
+
+  function openDB() {
+    if (dbP) return dbP;
+    dbP = new Promise((res) => {
+      try {
+        if (!global.indexedDB) return res(null);
+        const r = indexedDB.open(IDB_NAME, 1);
+        r.onupgradeneeded = () => { r.result.createObjectStore(IDB_TABLE); };
+        r.onsuccess = () => res(r.result);
+        r.onerror = r.onblocked = () => res(null);
+      } catch (e) { res(null); }
+    }).then((d) => (db = d));
+    return dbP;
+  }
+  const idb = (mode, fn) => new Promise((res, rej) => {
+    try {
+      const tx = db.transaction(IDB_TABLE, mode), out = fn(tx.objectStore(IDB_TABLE));
+      tx.oncomplete = () => res(out && out.result);
+      tx.onerror = tx.onabort = () => rej(tx.error || new Error('IndexedDB gagal'));
+    } catch (e) { rej(e); }
+  });
+
+  // muat data milik admin dari IndexedDB; data lama di localStorage dimigrasikan otomatis (sekali)
+  async function init() {
+    await openDB();
+    if (!db) return; // IndexedDB tidak tersedia → tetap pakai localStorage
+    for (const k of [KEY, DRAFT]) {
+      const ls = lsGet(k); // dibaca lebih dulu agar aman dari balapan antar-tab saat migrasi
+      let v = null;
+      try { v = await idb('readonly', (s) => s.get(k)); } catch (e) {}
+      if (v == null && ls != null) {
+        try { await idb('readwrite', (s) => s.put(ls, k)); lsDel(k); lsFlag(); v = ls; } catch (e) { v = ls; }
+      } else if (v != null && ls != null) { lsDel(k); }
+      if (v != null) mem[k] = v;
+    }
+  }
+  // pengunjung biasa tidak punya data di browser → tidak perlu menunggu IndexedDB sama sekali
+  const needInit = lsGet(FLAG) === '1' || lsGet(KEY) != null || lsGet(DRAFT) != null ||
+    /admin|[?&]preview/i.test(location.pathname + location.search);
+  const ready = (needInit ? init() : Promise.resolve()).catch(() => {});
+
+  async function put(k, json) {
+    await openDB();
+    if (db) {
+      await idb('readwrite', (s) => s.put(json, k));
+      mem[k] = json; lsDel(k); lsFlag();
+      // minta browser agar data ini tidak dibersihkan otomatis saat ruang menipis
+      try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+    } else { localStorage.setItem(k, json); }
+  }
+  async function del(k) {
+    mem[k] = null;
+    await openDB();
+    if (db) { try { await idb('readwrite', (s) => s.delete(k)); } catch (e) {} }
+    lsDel(k);
+  }
+  const raw = (k) => (k in mem ? mem[k] : lsGet(k));
+
   function read(key) {
-    try { const raw = localStorage.getItem(key); return raw ? merge(DEFAULTS, JSON.parse(raw)) : null; }
+    try { const r = raw(key); return r ? merge(DEFAULTS, JSON.parse(r)) : null; }
     catch (e) { return null; }
   }
 
   const Store = {
     DEFAULTS,
     clone,
-    // data terbit: milik browser admin (localStorage) bila ada, jika tidak pakai assets/data.js (untuk pengunjung)
+    ready,
+    // data terbit: milik browser admin (IndexedDB) bila ada, jika tidak pakai assets/data.js (untuk pengunjung)
     load: () => read(KEY) || merge(DEFAULTS, global.TANDASERU_DATA || {}),
     loadDraft: () => read(DRAFT),
-    hasPublished: () => { try { return !!localStorage.getItem(KEY); } catch (e) { return false; } },
-    saveDraft(s) { try { localStorage.setItem(DRAFT, JSON.stringify(s)); } catch (e) { /* kuota penuh: abaikan */ } },
-    clearDraft() { try { localStorage.removeItem(DRAFT); } catch (e) {} },
-    // lempar error bila gagal (mis. kuota penuh) agar admin bisa memberi tahu
-    publish(s) { localStorage.setItem(KEY, JSON.stringify(s)); },
-    reset() { try { localStorage.removeItem(KEY); localStorage.removeItem(DRAFT); } catch (e) {} },
+    hasPublished: () => !!raw(KEY),
+    saveDraft(s) { return put(DRAFT, JSON.stringify(s)).catch(() => { /* gagal simpan draf: abaikan */ }); },
+    clearDraft() { return del(DRAFT); },
+    // mengembalikan Promise; ditolak bila gagal (mis. ruang penyimpanan perangkat penuh)
+    publish(s) { return put(KEY, JSON.stringify(s)); },
+    reset() { return Promise.all([del(KEY), del(DRAFT)]).then(() => lsDel(FLAG)); },
+    // kapasitas penyimpanan (byte) yang tersedia untuk situs ini
+    async limit() {
+      await openDB();
+      if (!db) return 5 * 1048576; // cadangan localStorage ±5 MB
+      try {
+        const e = navigator.storage && navigator.storage.estimate ? await navigator.storage.estimate() : null;
+        if (e && e.quota) return e.quota;
+      } catch (e) {}
+      return 200 * 1048576;
+    },
     merge
   };
 
