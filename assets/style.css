@@ -958,3 +958,74 @@ input, select, textarea, .field { font-size: 16px; }
   .card .cat { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 }
 @media (max-width: 900px) { .card .price { flex-wrap: nowrap; } .card .price s { display: none; } }
+
+/* =====================================================================
+   PROMO v6 — warna tetap dalam tema web (lebih terang/berkilau) + layout HP rapi
+   Font tidak diubah (tetap var(--display) / Manrope bawaan web)
+   ===================================================================== */
+.promo-sec .promo {
+  --pv: color-mix(in srgb, var(--primary) 62%, #35B38A);
+  color: #fff;
+  background:
+    radial-gradient(90% 70% at 0% 0%, rgba(255, 255, 255, .24), transparent 60%),
+    linear-gradient(145deg, color-mix(in srgb, var(--pv) 78%, #fff) 0%, var(--pv) 42%, color-mix(in srgb, var(--pv) 62%, var(--primary)) 100%);
+  box-shadow: 0 40px 70px -34px color-mix(in srgb, var(--pv) 90%, #000), inset 0 0 0 1px rgba(255, 255, 255, .22);
+}
+.promo-sec .promo::before { background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 55%, transparent), transparent); }
+.promo-sec .promo::after { background: radial-gradient(closest-side, rgba(255, 255, 255, .18), transparent); }
+.promo-sec .promo .pbadge { background: var(--accent); color: var(--ink); }
+.promo-sec .promo .ptitle { color: #fff; }
+.promo-sec .promo .ptitle mark { background: var(--accent); color: var(--ink); }
+.promo-sec .promo .ptext { color: rgba(255, 255, 255, .86); }
+.promo-sec .promo .plabel { color: rgba(255, 255, 255, .84); }
+.promo-sec .promo .pnum { color: color-mix(in srgb, var(--accent) 42%, #fff); text-shadow: 0 14px 30px rgba(0, 0, 0, .28); }
+.promo-sec .promo .btn { background: var(--bg); color: var(--ink); }
+.promo-sec .promo .btn::before { background: var(--gold); }
+.promo-sec .promo .btn:hover { color: var(--ink); }
+.promo-sec .promo .btn .ar { background: var(--ink); color: var(--gold); box-shadow: none; line-height: 1; padding-bottom: 1px; }
+.promo-sec .promo .coupon { color: #fff; border: 1.5px dashed rgba(255, 255, 255, .7); background: rgba(255, 255, 255, .12); }
+.promo-sec .promo .coupon:hover { background: rgba(255, 255, 255, .22); border-color: var(--gold); }
+.promo-sec .promo .coupon i { background: var(--accent); }
+.promo-sec .promo .coupon svg { stroke: var(--ink); }
+.promo-sec .promo .cdb { background: var(--ink); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14); }
+.promo-sec .promo .cdb b { color: var(--gold); }
+.promo-sec .promo .cdb small { color: rgba(255, 255, 255, .7); }
+
+@media (max-width: 900px) {
+  .promo-sec .promo { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: none; grid-auto-rows: auto; column-gap: 14px; row-gap: 0; padding: 18px 16px 16px; border-radius: 26px; align-items: start; }
+  .promo-sec .promo .promo-l, .promo-sec .promo .promo-r { display: contents; }
+
+  .promo-sec .promo .pbadge { grid-column: 1 / -1; grid-row: 1; justify-self: start; padding: 8px 14px; gap: 8px; font-size: 10.5px; line-height: 1; letter-spacing: .13em; }
+  .promo-sec .promo .ptitle { grid-column: 1 / -1; grid-row: 2; font-size: clamp(26px, 8vw, 34px); line-height: 1.12; letter-spacing: -.03em; margin: 14px 0 16px; }
+  .promo-sec .promo .ptitle mark { margin: .04em .1em .04em 0; }
+  .promo-sec .promo .ptext { display: none; }
+
+  /* baris label */
+  .promo-sec .promo .promo-r > .plabel { display: flex; align-items: center; gap: 6px; height: 16px; margin: 0 0 8px; padding: 0; font-size: 10px; line-height: 1; letter-spacing: .13em; white-space: nowrap; align-self: end; }
+  .promo-sec .promo .promo-r > .plabel:not(.clock) { grid-column: 1; grid-row: 3; }
+  .promo-sec .promo .promo-r > .plabel.clock { grid-column: 2; grid-row: 3; }
+  .promo-sec .promo .plabel.clock::before { flex: none; box-sizing: border-box; width: 12px; height: 12px; border-width: 1.5px; margin: 0; background-size: 1.5px 5px; }
+
+  /* baris angka + hitung mundur: tinggi sama, isi di tengah */
+  .promo-sec .promo .pnum { grid-column: 1; grid-row: 4; align-self: stretch; display: flex; align-items: center; font-size: clamp(54px, 16vw, 72px); line-height: 1; margin: 0 0 0 -.02em; letter-spacing: -.05em; text-shadow: none; }
+  .promo-sec .promo .cd { grid-column: 2; grid-row: 4; align-self: stretch; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; margin: 0; }
+  .promo-sec .promo .cdb { max-width: none; padding: 0 2px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 54px; }
+  .promo-sec .promo .cdb b { font-size: clamp(15px, 4.8vw, 21px); line-height: 1; }
+  .promo-sec .promo .cdb small { margin-top: 4px; font-size: 7.5px; line-height: 1; letter-spacing: .05em; }
+
+  /* tanpa persen / tanpa hitung mundur tetap rapi */
+  .promo-sec .promo .promo-r > .plabel.clock:first-child, .promo-sec .promo .promo-r > .plabel.clock:first-child + .cd { grid-column: 1 / -1; }
+  .promo-sec .promo .promo-r > .pnum:last-child, .promo-sec .promo .promo-r > .plabel:not(.clock):nth-last-child(2) { grid-column: 1 / -1; }
+
+  /* tombol + kode */
+  .promo-sec .promo .pact { grid-column: 1 / -1; grid-row: 5; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
+  .promo-sec .promo .pact:has(.btn:only-child) { grid-template-columns: 1fr; }
+  .promo-sec .promo .pact .btn, .promo-sec .promo .pact .coupon { width: auto; min-width: 0; height: 48px; box-sizing: border-box; align-items: center; justify-content: space-between; white-space: nowrap; }
+  .promo-sec .promo .pact .btn { padding: 0 5px 0 16px; gap: 4px; font-size: 13px; }
+  .promo-sec .promo .pact .btn .ar { width: 36px; height: 36px; flex: none; font-size: 15px; }
+  .promo-sec .promo .pact .coupon { padding: 0 5px 0 16px; gap: 8px; }
+  .promo-sec .promo .coupon small { display: none; }
+  .promo-sec .promo .coupon b { font-size: 14.5px; line-height: 1; letter-spacing: .08em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .promo-sec .promo .coupon i { width: 36px; height: 36px; flex: none; display: grid; place-items: center; }
+  .promo-sec .promo .coupon svg { width: 16px; height: 16px; }
+}
