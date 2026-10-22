@@ -1,1 +1,1 @@
-{ "version": 1, "include": ["/api/*"], "exclude": [] }
+{ "version": 1, "include": ["/api/*", "/admin", "/admin/", "/admin.html", "/assets/admin.js", "/assets/admin.css"], "exclude": [] }

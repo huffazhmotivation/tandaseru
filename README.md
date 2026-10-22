@@ -23,3 +23,8 @@ Perubahan dari admin disimpan di **Cloudflare KV**, jadi semua pengunjung (HP, b
 
 ## Lokal
 `npx wrangler pages dev . --kv=TANDASERU_KV --binding ADMIN_PASSWORD=rahasia`
+
+## Keamanan admin
+- `/admin` sekarang dilindungi login: tanpa kata sandi yang benar (`ADMIN_PASSWORD`) pengunjung hanya melihat form masuk; `admin.html`, `admin.js`, `admin.css` tidak dikirim sama sekali.
+- Sesi disimpan sebagai cookie HttpOnly 30 hari. Keluar: buka `/api/logout`. Mengganti `ADMIN_PASSWORD` otomatis mengeluarkan semua sesi.
+- Penulisan data (`PUT/POST/DELETE /api/*`) tetap wajib kata sandi.
