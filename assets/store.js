@@ -163,13 +163,18 @@
   }
   const merge = (base, over) => normCats(mergeDeep(base, over));
 
-  /* ---------- penyimpanan: IndexedDB (kuota jauh di atas 5 MB); localStorage hanya cadangan ---------- */
+  /* ---------- penyimpanan ----------
+     TERBIT → Cloudflare KV lewat /api/content (dibaca semua pengunjung, semua perangkat)
+     DRAF   → IndexedDB di browser admin (hanya draf yang belum diterbitkan)           */
+  const API = '/api/content', IMG_API = '/api/img', TOKEN_KEY = 'tandaseru:token';
   const IDB_NAME = KEY.split(':')[0] + '-store', IDB_TABLE = 'kv', FLAG = KEY + ':idb';
-  const mem = {};            // salinan data di memori agar load() tetap sinkron
+  const mem = {};            // salinan draf/data lama di memori agar load() tetap sinkron
+  let remote = null;         // data terbit dari KV
   let db = null, dbP = null;
   const lsGet = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
   const lsDel = (k) => { try { localStorage.removeItem(k); } catch (e) {} };
-  const lsFlag = () => { try { localStorage.setItem(FLAG, '1'); } catch (e) {} };
+  const lsFlag = () => lsSet(FLAG, '1');
 
   function openDB() {
     if (dbP) return dbP;
@@ -192,12 +197,12 @@
     } catch (e) { rej(e); }
   });
 
-  // muat data milik admin dari IndexedDB; data lama di localStorage dimigrasikan otomatis (sekali)
+  // muat draf (dan data lama versi sebelum KV) dari IndexedDB; migrasi dari localStorage bila perlu
   async function init() {
     await openDB();
-    if (!db) return; // IndexedDB tidak tersedia → tetap pakai localStorage
+    if (!db) return;
     for (const k of [KEY, DRAFT]) {
-      const ls = lsGet(k); // dibaca lebih dulu agar aman dari balapan antar-tab saat migrasi
+      const ls = lsGet(k);
       let v = null;
       try { v = await idb('readonly', (s) => s.get(k)); } catch (e) {}
       if (v == null && ls != null) {
@@ -206,18 +211,28 @@
       if (v != null) mem[k] = v;
     }
   }
-  // pengunjung biasa tidak punya data di browser → tidak perlu menunggu IndexedDB sama sekali
+
+  // ambil data terbit dari server (KV). Gagal/lambat → pakai assets/data.js / bawaan
+  async function fetchRemote() {
+    const ctl = typeof AbortController === 'function' ? new AbortController() : null;
+    const timer = setTimeout(() => ctl && ctl.abort(), 6000);
+    try {
+      const r = await fetch(API, { signal: ctl && ctl.signal });
+      if (r.ok && r.status !== 204) { const j = await r.json(); if (isObj(j) && Object.keys(j).length) remote = j; }
+    } catch (e) { /* offline / API belum aktif */ }
+    clearTimeout(timer);
+  }
+
+  // pengunjung biasa tidak punya draf di browser → tidak perlu menunggu IndexedDB
   const needInit = lsGet(FLAG) === '1' || lsGet(KEY) != null || lsGet(DRAFT) != null ||
     /admin|[?&]preview/i.test(location.pathname + location.search);
-  const ready = (needInit ? init() : Promise.resolve()).catch(() => {});
+  const ready = Promise.all([fetchRemote(), needInit ? init() : null]).catch(() => {});
 
-  async function put(k, json) {
+  async function put(k, json) {   // khusus draf (lokal)
     await openDB();
     if (db) {
       await idb('readwrite', (s) => s.put(json, k));
       mem[k] = json; lsDel(k); lsFlag();
-      // minta browser agar data ini tidak dibersihkan otomatis saat ruang menipis
-      try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
     } else { localStorage.setItem(k, json); }
   }
   async function del(k) {
@@ -227,29 +242,69 @@
     lsDel(k);
   }
   const raw = (k) => (k in mem ? mem[k] : lsGet(k));
-
   function read(key) {
     try { const r = raw(key); return r ? merge(DEFAULTS, JSON.parse(r)) : null; }
     catch (e) { return null; }
   }
 
+  /* ---------- panggilan API (admin) ---------- */
+  const getToken = () => lsGet(TOKEN_KEY) || '';
+  const setToken = (t) => (t ? lsSet(TOKEN_KEY, t) : lsDel(TOKEN_KEY));
+  async function api(url, opt) {
+    opt = opt || {}; opt.headers = Object.assign({}, opt.headers, { Authorization: 'Bearer ' + getToken() });
+    let r;
+    try { r = await fetch(url, opt); } catch (e) { const er = new Error('Tidak bisa terhubung ke server. Periksa internet.'); er.code = 'NET'; throw er; }
+    if (r.ok) return r;
+    let msg = ''; try { msg = (await r.json()).error; } catch (e) {}
+    const er = new Error(msg || ('Server menjawab ' + r.status));
+    er.code = r.status === 401 ? 'AUTH' : 'HTTP'; throw er;
+  }
+  const walk = (v, fn) => {   // ganti string di mana pun dalam objek
+    if (typeof v === 'string') return fn(v);
+    if (Array.isArray(v)) return v.map((x) => walk(x, fn));
+    if (isObj(v)) { const o = {}; for (const k in v) o[k] = walk(v[k], fn); return o; }
+    return v;
+  };
+
   const Store = {
     DEFAULTS,
     clone,
     ready,
-    // data terbit: milik browser admin (IndexedDB) bila ada, jika tidak pakai assets/data.js (untuk pengunjung)
-    load: () => read(KEY) || merge(DEFAULTS, global.TANDASERU_DATA || {}),
+    // data terbit: dari KV bila ada, jika tidak assets/data.js, jika tidak bawaan
+    load: () => merge(DEFAULTS, remote || global.TANDASERU_DATA || {}),
+    // data "terbit" lama yang tersimpan di browser ini (sebelum pindah ke KV) — dipakai admin untuk migrasi
+    localPublished: () => read(KEY),
     loadDraft: () => read(DRAFT),
-    hasPublished: () => !!raw(KEY),
+    hasPublished: () => !!remote,
     saveDraft(s) { return put(DRAFT, JSON.stringify(s)).catch(() => { /* gagal simpan draf: abaikan */ }); },
     clearDraft() { return del(DRAFT); },
-    // mengembalikan Promise; ditolak bila gagal (mis. ruang penyimpanan perangkat penuh)
-    publish(s) { return put(KEY, JSON.stringify(s)); },
-    reset() { return Promise.all([del(KEY), del(DRAFT)]).then(() => lsDel(FLAG)); },
-    // kapasitas penyimpanan (byte) yang tersedia untuk situs ini
+    getToken, setToken,
+    // unggah foto baru (data:) ke KV, lalu simpan data terbit. Mengembalikan data dengan URL foto final.
+    async publish(s, onStep) {
+      const urls = new Set();
+      walk(s, (t) => { if (t.startsWith('data:image/')) urls.add(t); return t; });
+      const map = new Map(); let n = 0;
+      for (const u of urls) {
+        if (onStep) onStep(`Mengunggah foto ${++n}/${urls.size}…`);
+        const blob = await (await fetch(u)).blob();
+        const r = await api(IMG_API, { method: 'POST', headers: { 'Content-Type': blob.type || 'image/webp' }, body: blob });
+        map.set(u, (await r.json()).url);
+      }
+      const out = walk(s, (t) => (map.has(t) ? map.get(t) : t));
+      if (onStep) onStep('Menyimpan…');
+      await api(API, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(out) });
+      remote = out;
+      return out;
+    },
+    async reset() {
+      await api(API, { method: 'DELETE' });
+      remote = null;
+      await Promise.all([del(KEY), del(DRAFT)]); lsDel(FLAG);
+    },
+    // ukuran maksimum yang dipakai meter di admin (draf lokal). Foto disimpan di KV saat terbit.
     async limit() {
       await openDB();
-      if (!db) return 5 * 1048576; // cadangan localStorage ±5 MB
+      if (!db) return 5 * 1048576;
       try {
         const e = navigator.storage && navigator.storage.estimate ? await navigator.storage.estimate() : null;
         if (e && e.quota) return e.quota;

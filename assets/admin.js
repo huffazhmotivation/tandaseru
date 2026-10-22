@@ -10,8 +10,10 @@ TSStore.ready.then(function () {
 
   /* ---------- state ---------- */
   const draft = TSStore.loadDraft();
-  let S = draft || TSStore.load();
-  let dirty = !!draft;
+  // data lama di browser ini (sebelum pindah ke KV): dimuat sekali supaya editan tidak hilang
+  const legacy = !TSStore.hasPublished() ? TSStore.localPublished() : null;
+  let S = draft || legacy || TSStore.load();
+  let dirty = !!draft || !!legacy;
   let tab = 'general';
   let editing = null; // indeks produk yang sedang diedit
   let device = 'desktop';
@@ -399,6 +401,14 @@ TSStore.ready.then(function () {
     });
   }
 
+  /* ---------- kata sandi admin (untuk menulis ke Cloudflare KV) ---------- */
+  async function askToken() {
+    if (TSStore.getToken()) return true;
+    const p = prompt('Masukkan kata sandi admin (ADMIN_PASSWORD di Cloudflare):');
+    if (!p || !p.trim()) return false;
+    TSStore.setToken(p.trim()); return true;
+  }
+
   /* ---------- aksi ---------- */
   const actions = {
     tab(el) {
@@ -464,13 +474,19 @@ TSStore.ready.then(function () {
       toPreview({ type: 'tandaseru:product', id: null });
     },
     async publish() {
-      try { await TSStore.publish(S); } catch (e) {
-        toast(e && e.name === 'QuotaExceededError'
-          ? 'Penyimpanan perangkat penuh. Kosongkan ruang atau hapus beberapa foto.'
-          : 'Gagal menyimpan ke browser: ' + ((e && e.message) || e), true);
+      if (!(await askToken())) return;
+      const btn = $('#publish'); btn.disabled = true;
+      let out;
+      try { out = await TSStore.publish(S, (m) => { $('#status').textContent = m; }); }
+      catch (e) {
+        setStatus();
+        if (e.code === 'AUTH') { TSStore.setToken(''); toast('Kata sandi admin salah. Coba terbitkan lagi.', true); }
+        else toast('Gagal menerbitkan: ' + (e.message || e), true);
         return;
       }
-      TSStore.clearDraft(); dirty = false; setStatus(); toast('Tersimpan — situs sudah diperbarui');
+      S = out; // foto kini berupa URL /api/img/…
+      await TSStore.clearDraft(); dirty = false; setStatus(); renderEditor(); pushPreview(); renderTabsMeter();
+      toast('Terbit — semua perangkat akan melihat perubahan ini (maks. ±1 menit)');
     },
     'menu-more'() { const m = $('#moreMenu'); m.hidden = !m.hidden; },
     'export-site'() {
@@ -485,9 +501,15 @@ TSStore.ready.then(function () {
       a.download = `tandaseru-${new Date().toISOString().slice(0, 10)}.json`; a.click(); URL.revokeObjectURL(a.href);
     },
     import() { $('#jsonInput').value = ''; $('#jsonInput').click(); },
-    reset() {
-      if (!confirm('Kembalikan semua konten ke bawaan? Perubahan yang sudah diterbitkan juga akan terhapus.')) return;
-      TSStore.reset(); S = clone(TSStore.DEFAULTS); dirty = false; editing = null; renderAll(); setStatus(); pushPreview();
+    async reset() {
+      if (!confirm('Kembalikan semua konten ke bawaan? Perubahan yang sudah diterbitkan juga akan terhapus untuk semua pengunjung.')) return;
+      if (!(await askToken())) return;
+      try { await TSStore.reset(); }
+      catch (e) {
+        if (e.code === 'AUTH') { TSStore.setToken(''); toast('Kata sandi admin salah', true); } else toast('Gagal mereset: ' + e.message, true);
+        return;
+      }
+      S = clone(TSStore.DEFAULTS); dirty = false; editing = null; renderAll(); setStatus(); pushPreview();
       toast('Konten dikembalikan ke bawaan');
     },
     view(el) {
@@ -580,4 +602,5 @@ TSStore.ready.then(function () {
   renderAll(); setStatus(); fit();
   TSStore.limit().then((n) => { LIMIT = n; renderTabsMeter(); });
   if (draft) toast('Draf yang belum diterbitkan dipulihkan');
+  else if (legacy) toast('Data lama di browser ini dimuat — klik “Simpan & terbitkan” untuk menyimpannya ke server');
 });

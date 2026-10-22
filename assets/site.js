@@ -730,9 +730,21 @@ TSStore.ready.then(function () {
           <p class="desc">${nl(p.desc)}</p>
           ${sizes.length ? `<div class="opt"><h4>Ukuran<b>${esc(ui.size)}</b></h4><div class="opts">${sizes.map((s) => `<button class="pill" data-act="size" data-v="${esc(s)}" aria-pressed="${s === ui.size}">${esc(s)}</button>`).join('')}</div></div>` : ''}
           ${colors.length ? `<div class="opt"><h4>Warna<b>${esc(ui.color)}</b></h4><div class="opts">${colors.map((s) => `<button class="pill" data-act="color" data-v="${esc(s)}" aria-pressed="${s === ui.color}">${esc(s)}</button>`).join('')}</div></div>` : ''}
-          ${tplChannels(p)}
+          <div class="chwrap">${tplChannels(p)}</div>
         </div>
       </div>`;
+    fitSheet();
+  }
+
+  /* ganti ukuran/warna tanpa membangun ulang modal (anti-kedip) */
+  function pickOpt(act, v) {
+    const p = product(); if (!p) return;
+    ui[act] = ui[act] === v ? '' : v;
+    const m = $('#modal');
+    m.querySelectorAll('[data-act="' + act + '"]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === ui[act])));
+    const b = m.querySelector('[data-act="' + act + '"]'), lab = b && b.closest('.opt') && b.closest('.opt').querySelector('h4 b');
+    if (lab) lab.textContent = ui[act];
+    const cw = m.querySelector('.chwrap'); if (cw) cw.innerHTML = tplChannels(p);
     fitSheet();
   }
 
@@ -875,7 +887,7 @@ TSStore.ready.then(function () {
       if (act === 'gprev') galGo(ui.img - 1);
       if (act === 'gnext') galGo(ui.img + 1);
       if (act === 'gdot') galGo(+el.dataset.i);
-      if (act === 'size' || act === 'color') { const v = el.dataset.v; ui[act] = ui[act] === v ? '' : v; renderModal(); }
+      if (act === 'size' || act === 'color') pickOpt(act, el.dataset.v);
       return;
     }
     if (e.target.id === 'modal') closeModal();

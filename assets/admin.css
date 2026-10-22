@@ -238,3 +238,9 @@ input, textarea, select { font: inherit; color: inherit; }
 /* logo resmi (hitam di header terang) */
 .logo { color: #000; display: inline-flex; align-items: center; }
 .logo .wm { display: block; height: 15px; width: auto; fill: currentColor; }
+
+/* anti auto-zoom di HP: iOS memperbesar halaman saat fokus ke input berfont <16px */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; touch-action: manipulation; }
+@media (hover: none) and (pointer: coarse), (max-width: 900px) {
+  input, textarea, select, .fld input, .fld textarea, .fld select { font-size: 16px !important; }
+}

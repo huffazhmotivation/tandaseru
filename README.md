@@ -1,20 +1,25 @@
-# tandaseru! — landing page + katalog + admin
+# tandaseru! — landing page + katalog + admin (Cloudflare Pages + KV)
 
-Jalankan (wajib lewat server lokal agar admin & situs berbagi data):
+Perubahan dari admin disimpan di **Cloudflare KV**, jadi semua pengunjung (HP, browser lain) melihat data yang sama.
 
-    python3 -m http.server 8080
+## Struktur
+- `_worker.js`  → API kecil (`/api/content`, `/api/img`) yang membaca/menulis KV
+- `_routes.json` → hanya `/api/*` yang melewati worker, file statis tetap cepat
+- `admin.html`, `index.html`, `assets/`, `foto/` → situs & admin
 
-- Situs:  http://localhost:8080/index.html
-- Admin:  http://localhost:8080/admin.html
+## Setup sekali (dashboard Cloudflare)
+1. **Storage & databases → KV → Create** namespace, mis. `tandaseru-kv`.
+2. Project Pages → **Settings → Bindings → Add → KV namespace**
+   - Variable name: `TANDASERU_KV`  · pilih namespace tadi.
+3. **Settings → Variables and Secrets → Add** → `ADMIN_PASSWORD` (tipe Secret) = kata sandi admin pilihan Anda.
+4. Deploy ulang folder ini (drag & drop zip/folder, atau `npx wrangler pages deploy .`).
+   Binding & variabel baru hanya berlaku pada deployment berikutnya.
 
-Data & foto disimpan di IndexedDB browser (kapasitas ratusan MB–GB, bukan lagi batas 5 MB localStorage; data lama dimigrasikan otomatis). Hanya untuk demo/uji.
-Untuk produksi, ganti assets/store.js dengan API/database + login admin.
+## Cara pakai
+- Buka `/admin`, ubah katalog, klik **Simpan & terbitkan**. Pertama kali akan diminta kata sandi admin (disimpan di browser itu).
+- Foto dikompres di browser lalu diunggah ke KV saat terbit; data teks disimpan di `site:published`.
+- Perubahan terlihat di semua perangkat dalam ±1 menit (KV bersifat eventual consistency).
+- Data lama yang tersimpan di browser admin (sebelum pakai KV) otomatis dimuat sekali; tinggal klik terbitkan.
 
-## Kategori custom (Admin → Katalog → Kategori)
-
-- Tambah, ganti nama, urutkan (↑↓), dan hapus kategori sesuka hati.
-- Ganti nama otomatis ikut mengubah produk di kategori itu; nama kosong/kembar ditolak.
-- Hapus kategori → produknya jadi "tanpa kategori" (konfirmasi dulu).
-- Tiap kategori punya teks pendek, foto sampul, dan bentuk ilustrasi untuk kartu di situs.
-- Kategori tanpa produk tidak tampil di situs.
-- Data lama (kategori berupa teks biasa) otomatis dikonversi.
+## Lokal
+`npx wrangler pages dev . --kv=TANDASERU_KV --binding ADMIN_PASSWORD=rahasia`
