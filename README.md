@@ -28,3 +28,8 @@ Perubahan dari admin disimpan di **Cloudflare KV**, jadi semua pengunjung (HP, b
 - `/admin` sekarang dilindungi login: tanpa kata sandi yang benar (`ADMIN_PASSWORD`) pengunjung hanya melihat form masuk; `admin.html`, `admin.js`, `admin.css` tidak dikirim sama sekali.
 - Sesi disimpan sebagai cookie HttpOnly 30 hari. Keluar: buka `/api/logout`. Mengganti `ADMIN_PASSWORD` otomatis mengeluarkan semua sesi.
 - Penulisan data (`PUT/POST/DELETE /api/*`) tetap wajib kata sandi.
+
+## Keranjang
+- Pembeli bisa menambah beberapa produk (ukuran/warna berbeda, jumlah diatur) lalu klik **Pesan semua via WhatsApp** — satu pesan berisi daftar produk, jumlah, harga, total, dan kode promo.
+- Keranjang tersimpan di browser pembeli; nama, harga, foto, dan stok selalu dibaca dari katalog terbaru (produk habis/dihapus ditandai dan tidak ikut dipesan).
+- Admin → tab Checkout → grup **Keranjang** untuk mengaktifkan/menonaktifkan. Butuh WhatsApp aktif.

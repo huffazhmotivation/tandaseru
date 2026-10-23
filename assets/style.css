@@ -1240,3 +1240,67 @@ body { overflow-x: hidden; overflow-x: clip; max-width: 100%; position: relative
   .tools-right { flex-direction: column; }
   .stats > div { padding: 12px 8px; }
 }
+
+/* ---------- keranjang ---------- */
+.cartadd { position: relative; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 11px 20px; margin: 0 0 8px; border-radius: 999px; background: transparent; color: var(--primary); font: inherit; font-weight: 700; font-size: 15px; box-shadow: inset 0 0 0 1.5px var(--primary); cursor: pointer; transition: all .35s var(--ease); }
+.cartadd:hover { background: var(--primary); color: #fff; }
+.cartadd svg { width: 20px; height: 20px; }
+.cartadd em { font-style: normal; font-weight: 600; opacity: .7; }
+.opts.shake { animation: cshake .45s; }
+@keyframes cshake { 20%, 60% { transform: translateX(-5px); } 40%, 80% { transform: translateX(5px); } }
+.cartfab { position: fixed; right: calc(max(20px, env(safe-area-inset-right, 0px)) + var(--fabw, 0px)); bottom: max(20px, env(safe-area-inset-bottom, 0px)); z-index: 60; width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: var(--primary); color: #fff; border: 0; cursor: pointer; box-shadow: 0 14px 34px -10px rgba(11, 27, 22, .55); transition: transform .35s var(--ease); }
+.cartfab[hidden] { display: none; }
+.cartfab:hover { transform: translateY(-3px); }
+.cartfab svg { width: 24px; height: 24px; }
+.cartfab b { position: absolute; top: -4px; right: -4px; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 999px; background: var(--accent); color: var(--ink); font-size: 12.5px; line-height: 24px; text-align: center; box-shadow: 0 0 0 3px var(--bg); }
+.cartfab.pop { animation: cpop .5s var(--ease); }
+@keyframes cpop { 40% { transform: scale(1.18); } }
+.carttoast { position: fixed; left: 50%; bottom: 92px; z-index: 85; display: flex; align-items: center; gap: 14px; max-width: calc(100vw - 32px); padding: 12px 14px 12px 20px; border-radius: 999px; background: var(--ink); color: #fff; font-size: 14px; font-weight: 600; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; transition: all .4s var(--ease); }
+.carttoast.on { transform: translate(-50%, 0); opacity: 1; pointer-events: auto; }
+.carttoast button { padding: 6px 14px; border-radius: 999px; border: 0; background: var(--accent); color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; }
+.cartwrap { position: fixed; inset: 0; z-index: 80; display: flex; justify-content: flex-end; }
+.cartbg { position: absolute; inset: 0; background: color-mix(in srgb, var(--ink) 52%, transparent); animation: fade .3s var(--ease); }
+.cartpane { position: relative; display: flex; flex-direction: column; width: min(440px, 100%); height: 100%; background: var(--bg); color: var(--ink); animation: cslide .5s var(--ease); box-shadow: -30px 0 60px -30px rgba(0, 0, 0, .4); }
+@keyframes cslide { from { transform: translateX(40px); opacity: 0; } }
+.cartpane header { display: flex; align-items: center; justify-content: space-between; padding: 22px 24px 16px; border-bottom: 1px solid var(--line); }
+.cartpane header h3 { font-size: 21px; letter-spacing: -.02em; }
+.cartpane header small { font-size: 13px; font-weight: 600; color: var(--muted, #667068); margin-left: 6px; }
+.cclose { width: 40px; height: 40px; border-radius: 50%; border: 0; background: var(--soft); font-size: 22px; line-height: 1; cursor: pointer; color: var(--ink); }
+.cartlist { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 8px 24px; }
+.citem { display: grid; grid-template-columns: 72px 1fr auto; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+.citem.bad { opacity: .75; }
+.cthumb { position: relative; width: 72px; height: 92px; border-radius: 16px; overflow: hidden; background: var(--soft); }
+.cthumb img, .cthumb .fig, .cthumb svg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 18%; }
+.cinfo { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cinfo b { font-size: 15px; line-height: 1.3; }
+.copt, .cprice { font-size: 13px; color: var(--muted, #667068); }
+.cwarn { font-size: 12.5px; font-weight: 700; color: #B3261E; }
+.crow { display: flex; align-items: center; gap: 14px; margin-top: 8px; }
+.qty { display: inline-flex; align-items: center; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--line); background: var(--paper); }
+.qty button { width: 34px; height: 34px; border: 0; background: none; font-size: 18px; cursor: pointer; color: var(--ink); border-radius: 50%; }
+.qty button:disabled { opacity: .3; cursor: default; }
+.qty span { min-width: 26px; text-align: center; font-weight: 700; font-size: 14px; }
+.cdel { border: 0; background: none; font: inherit; font-size: 13px; color: var(--muted, #667068); text-decoration: underline; cursor: pointer; }
+.csub { font-weight: 700; font-size: 14px; white-space: nowrap; }
+.cartpane footer { padding: 18px 24px calc(20px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--paper); display: flex; flex-direction: column; gap: 10px; }
+.ctotal { display: flex; justify-content: space-between; align-items: baseline; font-size: 15px; }
+.ctotal b { font-size: 22px; letter-spacing: -.02em; }
+.cnote { font-size: 12.5px; color: var(--muted, #667068); text-align: center; }
+.corder { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 15px 20px; border-radius: 999px; border: 0; background: var(--primary); color: #fff; font: inherit; font-weight: 700; font-size: 15.5px; cursor: pointer; text-decoration: none; transition: background .3s; }
+.corder:hover { background: var(--ink); }
+.corder svg { width: 22px; height: 22px; }
+.cclear { border: 0; background: none; font: inherit; font-size: 13px; color: var(--muted, #667068); cursor: pointer; text-decoration: underline; }
+.cartempty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; color: var(--muted, #667068); }
+.cartempty svg { width: 54px; height: 54px; opacity: .5; }
+.cartempty .corder { width: auto; padding-inline: 28px; }
+@media (max-width: 600px) {
+  .cartwrap { align-items: flex-end; }
+  .cartpane { width: 100%; height: min(88vh, 100%); border-radius: 28px 28px 0 0; animation: cup .5s var(--ease); }
+  @keyframes cup { from { transform: translateY(40px); opacity: 0; } }
+  .carttoast { bottom: 90px; }
+}
+@media (prefers-reduced-motion: reduce) { .cartpane, .cartbg, .opts.shake, .cartfab.pop { animation: none; } }
+
+.cask { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 10px; font-size: 13px; }
+.cask button { padding: 8px 14px; border-radius: 999px; border: 0; font: inherit; font-weight: 600; cursor: pointer; background: var(--soft); color: var(--ink); }
+.cask .cyes { background: #B3261E; color: #fff; }

@@ -809,6 +809,7 @@ TSStore.ready.then(function () {
     const needSize = !p.soldout && list(p.sizes).length && !ui.size;
     return `<div class="opt"><h4>${esc((S.checkout && S.checkout.title) || 'Pesan lewat')}</h4>
       ${needSize ? '<p class="hint">Pilih ukuran dulu agar pesanan Anda tepat.</p>' : ''}
+      ${!p.soldout && cartOn() ? `<button class="cartadd" data-act="addcart">${BAG}<span>Tambah ke keranjang</span><em>${cartCount() ? '(' + cartCount() + ')' : ''}</em></button>` : ''}
       <div class="chans">${rows.length ? rows.join('') : '<p class="hint">Belum ada kanal pesan yang aktif.</p>'}</div></div>
       <p class="note">${esc((S.checkout && S.checkout.footnote) || '')}</p>`;
   }
@@ -911,6 +912,161 @@ TSStore.ready.then(function () {
     else if (e.key === 'ArrowRight') galGo(ui.img + 1);
   });
 
+
+  /* ---------- keranjang: beli beberapa produk sekaligus → satu pesan WhatsApp ---------- */
+  const CART_KEY = 'tandaseru:cart1';
+  const cartOn = () => waOn() && chOf('cart').enabled !== false;
+  const MAXQ = 99;
+  const loadCart = () => {
+    try {
+      const a = JSON.parse(localStorage.getItem(CART_KEY) || '[]');
+      return (Array.isArray(a) ? a : []).map((x) => ({ id: String(x.id || ''), size: String(x.size || ''), color: String(x.color || ''), qty: Math.max(1, Math.min(MAXQ, +x.qty || 1)) })).filter((x) => x.id);
+    } catch (e) { return []; }
+  };
+  let cart = loadCart();
+  const saveCart = () => { try { localStorage.setItem(CART_KEY, JSON.stringify(cart)); } catch (e) {} };
+
+  // data keranjang hanya menyimpan id + pilihan; nama, harga, foto & stok selalu dibaca dari katalog terbaru
+  function cartLines() {
+    return cart.map((it, i) => {
+      const p = S.catalog.products.find((x) => x.id === it.id);
+      let bad = '';
+      if (!p || p.hidden) bad = 'Produk tidak tersedia lagi';
+      else if (p.soldout) bad = 'Stok habis';
+      else if (list(p.sizes).length && !list(p.sizes).includes(it.size)) bad = 'Ukuran tidak tersedia, hapus & pilih ulang';
+      else if (it.color && !list(p.colors).includes(it.color)) bad = 'Warna tidak tersedia, hapus & pilih ulang';
+      return { i, it, p, bad, sub: p ? (Number(p.price) || 0) * it.qty : 0 };
+    });
+  }
+  const cartCount = () => cartLines().reduce((n, l) => n + (l.bad ? 0 : l.it.qty), 0);
+  const cartTotal = () => cartLines().reduce((n, l) => n + (l.bad ? 0 : l.sub), 0);
+
+  function cartText() {
+    const ok = cartLines().filter((l) => !l.bad);
+    const L = [`Halo ${S.brand.name}, saya mau pesan:`, ''];
+    ok.forEach((l, n) => {
+      L.push(`${n + 1}. ${l.p.name}`);
+      const opt = [l.it.size && `Ukuran: ${l.it.size}`, l.it.color && `Warna: ${l.it.color}`].filter(Boolean).join(' · ');
+      if (opt) L.push(`   ${opt}`);
+      L.push(`   ${l.it.qty} × ${rupiah(l.p.price)} = ${rupiah(l.sub)}`);
+    });
+    L.push('', `Total ${ok.reduce((n, l) => n + l.it.qty, 0)} pcs: ${rupiah(cartTotal())}`);
+    if (promoOn() && S.promo.code) L.push(`Kode promo: ${S.promo.code}`);
+    L.push('', 'Apakah semuanya tersedia?');
+    return L.join('\n');
+  }
+
+  function cartToast(msg, withBtn) {
+    let t = $('#carttoast');
+    if (!t) { t = document.createElement('div'); t.id = 'carttoast'; t.className = 'carttoast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
+    t.innerHTML = `<span>${esc(msg)}</span>${withBtn ? '<button data-act="cart">Lihat</button>' : ''}`;
+    t.classList.add('on'); clearTimeout(cartToast.t); cartToast.t = setTimeout(() => t.classList.remove('on'), 3200);
+  }
+
+  const BAG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>';
+
+  // tombol keranjang berdampingan dengan tombol WhatsApp (lebar tombol WA berubah di desktop/HP)
+  function placeFab() {
+    const f = $('#cartfab'); if (!f) return;
+    const w = $('.fab');
+    f.style.setProperty('--fabw', (w ? w.offsetWidth + 12 : 0) + 'px');
+  }
+  addEventListener('resize', placeFab);
+  let cartAsk = false; // konfirmasi "kosongkan" ditampilkan di panel (confirm() bisa diblokir browser)
+
+  function cartRefresh() {
+    // buang item yang produknya sudah dihapus dari katalog (yang hanya habis/tersembunyi tetap tampil dengan catatan)
+    const before = cart.length;
+    cart = cart.filter((it) => S.catalog.products.some((p) => p.id === it.id));
+    if (cart.length !== before) saveCart();
+    let fab = $('#cartfab');
+    if (!cartOn()) {
+      if (fab) fab.remove();
+      const w = $('#cartwrap'); if (w) { w.remove(); lockScroll(false); }
+      return;
+    }
+    if (!fab) { fab = document.createElement('button'); fab.id = 'cartfab'; fab.className = 'cartfab'; fab.dataset.act = 'cart'; fab.setAttribute('aria-label', 'Buka keranjang'); document.body.appendChild(fab); }
+    const n = cartCount();
+    fab.innerHTML = `${BAG}${n ? `<b>${n}</b>` : ''}`;
+    fab.hidden = false;
+    placeFab();
+    if ($('#cartwrap')) renderCart();
+    const cb = $('#modal .cartadd'); if (cb) cb.querySelector('em').textContent = n ? `(${n})` : '';
+  }
+
+  function renderCart() {
+    let w = $('#cartwrap');
+    if (!w) { w = document.createElement('div'); w.id = 'cartwrap'; w.className = 'cartwrap'; document.body.appendChild(w); }
+    const ls = cartLines(), ok = ls.filter((l) => !l.bad), n = ok.reduce((a, l) => a + l.it.qty, 0);
+    const keep = w.querySelector('.cartlist'); const st = keep ? keep.scrollTop : 0;
+    w.innerHTML = `
+      <div class="cartbg" data-act="cartclose"></div>
+      <aside class="cartpane" role="dialog" aria-modal="true" aria-label="Keranjang belanja">
+        <header><h3>Keranjang${n ? ` <small>${n} pcs</small>` : ''}</h3><button class="cclose" data-act="cartclose" aria-label="Tutup">×</button></header>
+        ${ls.length ? `<div class="cartlist">${ls.map((l) => `
+          <div class="citem${l.bad ? ' bad' : ''}">
+            <div class="cthumb">${l.p ? media(l.p.images && l.p.images[0], l.p.tone, kindOf(l.p), false) : ''}</div>
+            <div class="cinfo">
+              <b>${esc(l.p ? l.p.name : 'Produk dihapus')}</b>
+              <span class="copt">${esc([l.it.size && 'Ukuran ' + l.it.size, l.it.color].filter(Boolean).join(' · '))}</span>
+              ${l.bad ? `<span class="cwarn">${esc(l.bad)}</span>` : `<span class="cprice">${rupiah(l.p.price)}</span>`}
+              <div class="crow">
+                ${l.bad ? '<span></span>' : `<div class="qty"><button data-act="cdec" data-i="${l.i}" aria-label="Kurangi">−</button><span>${l.it.qty}</span><button data-act="cinc" data-i="${l.i}" aria-label="Tambah" ${l.it.qty >= MAXQ ? 'disabled' : ''}>+</button></div>`}
+                <button class="cdel" data-act="cdel" data-i="${l.i}">Hapus</button>
+              </div>
+            </div>
+            ${l.bad ? '' : `<div class="csub">${rupiah(l.sub)}</div>`}
+          </div>`).join('')}</div>
+        <footer>
+          <div class="ctotal"><span>Total</span><b>${rupiah(cartTotal())}</b></div>
+          ${promoOn() && S.promo.code ? `<p class="cnote">Kode promo <b>${esc(S.promo.code)}</b> ikut dikirim di pesan.</p>` : ''}
+          ${ok.length ? `<a class="corder" href="${esc(waLink(cartText()))}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="${WA_PATH}"/></svg>Pesan semua via WhatsApp</a>` : '<p class="cnote">Tidak ada produk yang bisa dipesan.</p>'}
+          ${cartAsk
+            ? `<div class="cask"><span>Kosongkan semua produk?</span><button class="cyes" data-act="cclearyes">Ya, kosongkan</button><button data-act="cclearno">Batal</button></div>`
+            : '<button class="cclear" data-act="cclear">Kosongkan keranjang</button>'}
+          <p class="cnote">Ongkir & pembayaran dikonfirmasi lewat chat WhatsApp.</p>
+        </footer>` : `<div class="cartempty">${BAG}<p>Keranjang masih kosong.</p><button class="corder" data-act="cartclose">Lihat koleksi</button></div>`}
+      </aside>`;
+    const nl2 = w.querySelector('.cartlist'); if (nl2) nl2.scrollTop = st;
+  }
+  function openCart() {
+    if (!cartOn()) return;
+    if (ui.openId) closeModal();
+    renderCart(); lockScroll(true);
+    const c = $('#cartwrap .cclose'); if (c) c.focus({ preventScroll: true });
+  }
+  function closeCart() { cartAsk = false; const w = $('#cartwrap'); if (w) w.remove(); lockScroll(false); }
+
+  function addToCart(p) {
+    if (!p || p.soldout || !cartOn()) return;
+    if (list(p.sizes).length && !ui.size) {
+      cartToast('Pilih ukuran dulu ya');
+      const o = $('#modal .opts'); if (o) { o.classList.remove('shake'); void o.offsetWidth; o.classList.add('shake'); }
+      return;
+    }
+    const f = cart.find((x) => x.id === p.id && x.size === ui.size && x.color === ui.color);
+    if (f) f.qty = Math.min(MAXQ, f.qty + 1); else cart.push({ id: p.id, size: ui.size, color: ui.color, qty: 1 });
+    saveCart(); cartRefresh();
+    const fab = $('#cartfab'); if (fab) { fab.classList.remove('pop'); void fab.offsetWidth; fab.classList.add('pop'); }
+    cartToast(`${p.name} masuk keranjang`, true);
+  }
+
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-act]'); if (!el) return;
+    const act = el.dataset.act, i = +el.dataset.i;
+    if (act === 'addcart') addToCart(product());
+    else if (act === 'cart') { const t = $('#carttoast'); if (t) t.classList.remove('on'); openCart(); }
+    else if (act === 'cartclose') closeCart();
+    else if (act === 'cinc' && cart[i]) { cart[i].qty = Math.min(MAXQ, cart[i].qty + 1); saveCart(); cartRefresh(); }
+    else if (act === 'cdec' && cart[i]) { cart[i].qty = Math.max(1, cart[i].qty - 1); saveCart(); cartRefresh(); }
+    else if (act === 'cdel' && cart[i]) { cart.splice(i, 1); saveCart(); cartRefresh(); }
+    else if (act === 'cclear') { cartAsk = true; renderCart(); }
+    else if (act === 'cclearno') { cartAsk = false; renderCart(); }
+    else if (act === 'cclearyes') { cart = []; cartAsk = false; saveCart(); cartRefresh(); }
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('#cartwrap')) closeCart(); });
+  addEventListener('storage', (e) => { if (e.key === CART_KEY) { cart = loadCart(); cartRefresh(); } }); // tab lain mengubah keranjang
+
   /* ---------- preview dari admin ---------- */
   const imgStore = {};
   if (isPreview) {
@@ -919,7 +1075,7 @@ TSStore.ready.then(function () {
       if (d.type === 'tandaseru:state') {
         if (d.imgs) Object.assign(imgStore, d.imgs);
         const un = (v) => (typeof v === 'string' ? (v.startsWith('@img') && imgStore[v]) || v : Array.isArray(v) ? v.map(un) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, un(x)])) : v);
-        S = TSStore.merge(TSStore.DEFAULTS, un(d.state)); render();
+        S = TSStore.merge(TSStore.DEFAULTS, un(d.state)); render(); cartRefresh();
       }
       if (d.type === 'tandaseru:scroll') {
         const t = document.querySelector(`[data-section="${d.section}"]`) || (d.section === 'general' ? $('#top') : null);
@@ -974,6 +1130,8 @@ TSStore.ready.then(function () {
 
   initDeck();
   render();
+  cartRefresh();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(placeFab);
   initFx();
   setInterval(tickPromo, 1000); tickPromo();
 });

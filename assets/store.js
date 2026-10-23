@@ -20,7 +20,8 @@
       footnote: 'Stok terbatas per batch · Tukar ukuran gratis 7 hari',
       shopee: { enabled: true, label: 'Beli di Shopee', note: 'Garansi platform & bisa pakai voucher', url: 'https://shopee.co.id/' },
       lynk: { enabled: true, label: 'Beli via Lynk.id', note: 'Bayar cepat, tanpa ribet daftar', url: 'https://lynk.id/' },
-      whatsapp: { enabled: true, label: 'Pesan via WhatsApp', note: 'Konsultasi ukuran gratis, dibalas cepat' }
+      whatsapp: { enabled: true, label: 'Pesan via WhatsApp', note: 'Konsultasi ukuran gratis, dibalas cepat' },
+      cart: { enabled: true }
     },
     announcement: { enabled: true, text: 'Batch ini terbatas — model yang habis harus menunggu produksi berikutnya. Gratis ongkir Jabodetabek di atas Rp350.000' },
     hero: {
