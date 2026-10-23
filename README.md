@@ -33,3 +33,8 @@ Perubahan dari admin disimpan di **Cloudflare KV**, jadi semua pengunjung (HP, b
 - Pembeli bisa menambah beberapa produk (ukuran/warna berbeda, jumlah diatur) lalu klik **Pesan semua via WhatsApp** — satu pesan berisi daftar produk, jumlah, harga, total, dan kode promo.
 - Keranjang tersimpan di browser pembeli; nama, harga, foto, dan stok selalu dibaca dari katalog terbaru (produk habis/dihapus ditandai dan tidak ikut dipesan).
 - Admin → tab Checkout → grup **Keranjang** untuk mengaktifkan/menonaktifkan. Butuh WhatsApp aktif.
+
+## Foto produk
+- Jumlah foto per produk bebas (tidak dibatasi). Pilih banyak sekaligus, atau seret file dari komputer ke kotak foto.
+- Seret kotak foto untuk mengubah urutan. Foto pertama = foto utama.
+- Klik **Atur** pada sebuah foto: zoom (1×–3×) dengan slider atau roda mouse, dan geser fotonya di dalam kotak 4:5. Berlaku di kartu produk, jendela produk, keranjang, dan produk pilihan.

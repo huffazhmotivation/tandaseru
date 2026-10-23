@@ -77,7 +77,7 @@ TSStore.ready.then(function () {
     const src = getPath(S, path);
     const tone = tonePath ? getPath(S, tonePath) : '#ddd';
     return `
-      <div class="imgf">
+      <div class="imgf" data-drop="single" data-path="${path}">
         <div class="thumb" style="--tone:${esc(tone)}">${src ? `<img src="${esc(src)}" alt="">` : ''}</div>
         <div><p class="t">${label}</p>
           <div class="btns"><button class="mini solid" data-act="pick" data-path="${path}">${src ? 'Ganti foto' : 'Unggah foto'}</button>${src ? `<button class="mini danger" data-act="clear" data-path="${path}">Hapus</button>` : ''}</div>
@@ -244,12 +244,15 @@ TSStore.ready.then(function () {
       <div class="pe-h"><h2>${esc(p.name || 'Produk')}</h2>
         <div class="btns"><button class="mini" data-act="dupp" data-i="${i}">Duplikat</button><button class="mini danger" data-act="delp" data-i="${i}">Hapus</button></div></div>
       ${group('Foto produk', `
-        <div class="gal">
-          ${imgs.map((src, k) => `<div class="cell"><div class="thumb"><img src="${esc(src)}" alt=""></div>
+        <div class="gal" data-drop="multi" data-path="${b}.images">
+          ${imgs.map((src, k) => `<div class="cell" draggable="true" data-k="${k}"><div class="thumb"><img src="${esc(src)}" alt="" draggable="false" style="${fxCss(fxGet(p, k))}"></div>
+            <button class="fxb" data-act="imgfx" data-i="${k}" data-p="${i}">Atur</button>
             <button class="x" data-act="imgdel" data-path="${b}.images" data-i="${k}" aria-label="Hapus foto">×</button>
             ${k === 0 ? '<span class="main">Utama</span>' : `<button class="set" data-act="imgmain" data-path="${b}.images" data-i="${k}">Jadikan utama</button>`}</div>`).join('')}
-          ${imgs.length < 4 ? `<button class="add" data-act="picks" data-path="${b}.images">+ Foto<br>(maks. 4)</button>` : ''}
-        </div>` + fColor('Warna ilustrasi (bila belum ada foto)', b + '.tone'))}
+          <button class="add" data-act="picks" data-path="${b}.images">+ Foto<br><small>atau seret &amp; lepas</small></button>
+        </div>
+        ${fxEditor(i, p)}
+        <p class="sub" style="margin:-4px 0 14px">Jumlah foto bebas. Foto pertama jadi foto utama. Pilih banyak sekaligus atau seret dari komputer ke kotak ini. Seret kotak foto untuk mengubah urutan, klik “Atur” untuk zoom & geser.</p>` + fColor('Warna ilustrasi (bila belum ada foto)', b + '.tone'))}
       ${group('Informasi',
         fText('Nama produk', b + '.name') +
         fSelectKV('Bentuk ilustrasi (bila belum ada foto)', b + '.fig', FIGS) +
@@ -384,23 +387,136 @@ TSStore.ready.then(function () {
     while (bytes(url) > target && q > 0.6) { q -= 0.06; url = c.toDataURL(mime, q); }
     return { url, before: file.size, after: bytes(url), w: tw, h: th, webp: WEBP_OK };
   }
+  // kompres berkas gambar → daftar data-URL (dipakai tombol unggah & seret-lepas)
+  async function processFiles(files) {
+    files = [...files].filter((f) => /^image\//.test(f.type));
+    if (!files.length) { toast('Tidak ada file gambar yang bisa dipakai', true); return []; }
+    toast(`Mengompres ${files.length} foto…`);
+    try {
+      const out = [];
+      for (const f of files) out.push(await compress(f)); // berurutan agar memori hemat
+      const b = out.reduce((a, o) => a + o.before, 0), a = out.reduce((n, o) => n + o.after, 0);
+      toast(`${out.length} foto → ${out[0].webp ? 'WebP' : 'JPEG'} · ${fmtKB(b)} jadi ${fmtKB(a)} (hemat ${Math.max(0, Math.round((1 - a / b) * 100))}%)`);
+      return out.map((o) => o.url);
+    } catch (e) { toast(e.message, true); return []; }
+  }
   function pickImages(multi) {
     return new Promise((res) => {
       const inp = $('#imgInput'); inp.multiple = !!multi; inp.value = '';
-      inp.onchange = async () => {
-        const files = [...inp.files]; if (!files.length) return res([]);
-        toast(`Mengompres ${files.length} foto…`);
-        try {
-          const out = [];
-          for (const f of files) out.push(await compress(f)); // berurutan agar memori hemat
-          const b = out.reduce((a, o) => a + o.before, 0), a = out.reduce((n, o) => n + o.after, 0);
-          toast(`${out.length} foto → ${out[0].webp ? 'WebP' : 'JPEG'} · ${fmtKB(b)} jadi ${fmtKB(a)} (hemat ${Math.max(0, Math.round((1 - a / b) * 100))}%)`);
-          res(out.map((o) => o.url));
-        } catch (e) { toast(e.message, true); res([]); }
-      };
+      inp.onchange = async () => { const files = [...inp.files]; res(files.length ? await processFiles(files) : []); };
       inp.click();
     });
   }
+
+  /* ---------- seret & lepas foto ---------- */
+  const hasFiles = (e) => e.dataTransfer && [...(e.dataTransfer.types || [])].includes('Files');
+  let dragEl = null;
+  const setDrag = (el) => { if (dragEl === el) return; if (dragEl) dragEl.classList.remove('dragover'); dragEl = el; if (el) el.classList.add('dragover'); };
+  document.addEventListener('dragover', (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault(); // tanpa ini browser membuka file di tab baru
+    const z = e.target.closest && e.target.closest('[data-drop]');
+    if (e.dataTransfer) e.dataTransfer.dropEffect = z ? 'copy' : 'none';
+    setDrag(z);
+  });
+  document.addEventListener('dragleave', (e) => { if (!e.relatedTarget) setDrag(null); });
+  document.addEventListener('drop', async (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault(); setDrag(null);
+    const z = e.target.closest && e.target.closest('[data-drop]'); if (!z) return;
+    const srcs = await processFiles(e.dataTransfer.files); if (!srcs.length) return;
+    if (z.dataset.drop === 'multi') { const arr = getPath(S, z.dataset.path); srcs.forEach((s) => arr.push(s)); }
+    else setPath(S, z.dataset.path, srcs[0]);
+    changed(); renderEditor();
+  });
+
+  /* ---------- atur tampilan foto produk: zoom + geser, urutkan dengan seret ---------- */
+  let fxFor = null; // { p: indeks produk, k: indeks foto } yang sedang diatur
+  const FX_MIN = 1, FX_MAX = 3;
+  const fxLim = (z) => (z - 1) * 50;
+  const clampN = (v, a, b) => Math.max(a, Math.min(b, v));
+  const fxGet = (p, k) => {
+    const f = (p.fx && p.fx[k]) || {};
+    const z = clampN(Number(f.z) || 1, FX_MIN, FX_MAX), l = fxLim(z);
+    return { z, x: clampN(Number(f.x) || 0, -l, l), y: clampN(Number(f.y) || 0, -l, l) };
+  };
+  const fxCss = (f) => (f.z > 1 || f.x || f.y ? `transform:translate(${f.x}%,${f.y}%) scale(${f.z});transform-origin:center` : '');
+  const fxPad = (p) => { if (!Array.isArray(p.fx)) p.fx = []; while (p.fx.length < (p.images || []).length) p.fx.push(null); return p.fx; };
+  function fxApply(pi, k, f, fromSlider) {
+    const p = S.catalog.products[pi]; if (!p) return;
+    const z = clampN(f.z, FX_MIN, FX_MAX), l = fxLim(z);
+    f = { z: Math.round(z * 100) / 100, x: Math.round(clampN(f.x, -l, l) * 10) / 10, y: Math.round(clampN(f.y, -l, l) * 10) / 10 };
+    fxPad(p)[k] = (f.z === 1 && !f.x && !f.y) ? null : f;
+    const css = fxCss(f);
+    const im = document.querySelector('#fxframe img'); if (im) im.style.cssText = css;
+    const th = document.querySelector(`.gal .cell[data-k="${k}"] img`); if (th) th.style.cssText = css;
+    const out = $('#fxout'); if (out) out.textContent = f.z.toFixed(2).replace(/\.?0+$/, '') + '×';
+    const sl = $('#fxzoom'); if (sl && !fromSlider) sl.value = Math.round(f.z * 100);
+    changed();
+  }
+  function fxEditor(pi, p) {
+    if (!fxFor || fxFor.p !== pi || !(p.images || [])[fxFor.k]) return '';
+    const k = fxFor.k, f = fxGet(p, k);
+    return `
+      <div class="fxed" id="fxed">
+        <div class="fxtop"><b>Atur foto ${k + 1}</b>
+          <span class="btns"><button class="mini" data-act="fxreset">Reset</button><button class="mini solid" data-act="fxclose">Selesai</button></span></div>
+        <div class="fxframe" id="fxframe"><img src="${esc(p.images[k])}" alt="" draggable="false" style="${fxCss(f)}"></div>
+        <label class="fxz"><span>Zoom</span><input type="range" id="fxzoom" min="${FX_MIN * 100}" max="${FX_MAX * 100}" step="5" value="${Math.round(f.z * 100)}"><output id="fxout">${f.z.toFixed(2).replace(/\.?0+$/, '')}×</output></label>
+        <p class="sub" style="margin:8px 0 0">Geser foto di dalam kotak untuk mengatur posisi, atau putar roda mouse untuk zoom. Kotak ini berukuran sama (4:5) dengan kartu produk di situs.</p>
+      </div>`;
+  }
+  const fxState = { drag: null };
+  document.addEventListener('pointerdown', (e) => {
+    const fr = e.target.closest && e.target.closest('#fxframe'); if (!fr || !fxFor) return;
+    const p = S.catalog.products[fxFor.p], f = fxGet(p, fxFor.k);
+    fxState.drag = { id: e.pointerId, x0: e.clientX, y0: e.clientY, f, w: fr.clientWidth, h: fr.clientHeight };
+    try { fr.setPointerCapture(e.pointerId); } catch (_) {}
+    fr.classList.add('grab'); e.preventDefault();
+  });
+  document.addEventListener('pointermove', (e) => {
+    const d = fxState.drag; if (!d || e.pointerId !== d.id || !fxFor) return;
+    fxApply(fxFor.p, fxFor.k, { z: d.f.z, x: d.f.x + (e.clientX - d.x0) / d.w * 100, y: d.f.y + (e.clientY - d.y0) / d.h * 100 });
+  });
+  const fxEnd = (e) => { const d = fxState.drag; if (!d || e.pointerId !== d.id) return; fxState.drag = null; const fr = $('#fxframe'); if (fr) fr.classList.remove('grab'); };
+  document.addEventListener('pointerup', fxEnd); document.addEventListener('pointercancel', fxEnd);
+  document.addEventListener('input', (e) => {
+    if (e.target.id !== 'fxzoom' || !fxFor) return;
+    const p = S.catalog.products[fxFor.p], f = fxGet(p, fxFor.k);
+    fxApply(fxFor.p, fxFor.k, { z: Number(e.target.value) / 100, x: f.x, y: f.y }, true);
+  });
+  document.addEventListener('wheel', (e) => {
+    const fr = e.target.closest && e.target.closest('#fxframe'); if (!fr || !fxFor) return;
+    e.preventDefault();
+    const p = S.catalog.products[fxFor.p], f = fxGet(p, fxFor.k);
+    fxApply(fxFor.p, fxFor.k, { z: f.z + (e.deltaY < 0 ? .1 : -.1), x: f.x, y: f.y });
+  }, { passive: false });
+
+  // urutkan foto dengan menyeret kotaknya (berkas dari komputer tetap ditangani seret-lepas di atas)
+  let cellDrag = null;
+  document.addEventListener('dragstart', (e) => {
+    const c = e.target.closest && e.target.closest('.gal .cell'); if (!c) return;
+    cellDrag = +c.dataset.k; c.classList.add('dragging');
+    try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', 'foto'); } catch (_) {}
+  });
+  document.addEventListener('dragend', () => { cellDrag = null; document.querySelectorAll('.gal .cell').forEach((c) => c.classList.remove('dragging', 'over')); });
+  document.addEventListener('dragover', (e) => {
+    if (cellDrag === null) return;
+    const c = e.target.closest && e.target.closest('.gal .cell'); if (!c) return;
+    e.preventDefault(); document.querySelectorAll('.gal .cell.over').forEach((x) => x !== c && x.classList.remove('over')); c.classList.add('over');
+  });
+  document.addEventListener('drop', (e) => {
+    if (cellDrag === null) return;
+    const c = e.target.closest && e.target.closest('.gal .cell'); if (!c) return;
+    e.preventDefault(); e.stopPropagation();
+    const from = cellDrag, to = +c.dataset.k; cellDrag = null;
+    if (from === to) return;
+    const gal = c.closest('.gal'), path = gal.dataset.path, imgs = getPath(S, path);
+    const p = getPath(S, path.replace(/\.images$/, ''));
+    const fx = fxPad(p);
+    imgs.splice(to, 0, imgs.splice(from, 1)[0]); fx.splice(to, 0, fx.splice(from, 1)[0]);
+    fxFor = null; changed(); renderEditor();
+  }, true);
 
   /* ---------- kata sandi admin (untuk menulis ke Cloudflare KV) ---------- */
   async function askToken() {
@@ -428,11 +544,20 @@ TSStore.ready.then(function () {
     async picks(el) {
       const arr = getPath(S, el.dataset.path);
       const srcs = await pickImages(true);
-      srcs.slice(0, 4 - arr.length).forEach((s) => arr.push(s));
+      srcs.forEach((s) => arr.push(s));
       changed(); renderEditor();
     },
-    imgdel(el) { getPath(S, el.dataset.path).splice(+el.dataset.i, 1); changed(); renderEditor(); },
-    imgmain(el) { const a = getPath(S, el.dataset.path); a.unshift(a.splice(+el.dataset.i, 1)[0]); changed(); renderEditor(); },
+    imgdel(el) {
+      const i = +el.dataset.i, p = getPath(S, el.dataset.path.replace(/\.images$/, ''));
+      getPath(S, el.dataset.path).splice(i, 1); fxPad(p).splice(i, 1); fxFor = null; changed(); renderEditor();
+    },
+    imgmain(el) {
+      const i = +el.dataset.i, a = getPath(S, el.dataset.path), p = getPath(S, el.dataset.path.replace(/\.images$/, ''));
+      a.unshift(a.splice(i, 1)[0]); const fx = fxPad(p); fx.unshift(fx.splice(i, 1)[0]); fxFor = null; changed(); renderEditor();
+    },
+    imgfx(el) { fxFor = { p: +el.dataset.p, k: +el.dataset.i }; renderEditor(); const f = $('#fxed'); if (f) f.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); },
+    fxclose() { fxFor = null; renderEditor(); },
+    fxreset() { if (fxFor) { fxApply(fxFor.p, fxFor.k, { z: 1, x: 0, y: 0 }); } },
     set(el) { setPath(S, el.dataset.path, el.dataset.v); changed(); renderEditor(); },
     add(el) { getPath(S, el.dataset.path).push(NEW[el.dataset.tpl]()); changed(); renderAll(); },
     del(el) { getPath(S, el.dataset.path).splice(+el.dataset.i, 1); changed(); renderAll(); },
@@ -459,7 +584,7 @@ TSStore.ready.then(function () {
       toPreview({ type: 'tandaseru:scroll', section: 'catalog' });
       toPreview({ type: 'tandaseru:product', id: S.catalog.products[editing].id });
     },
-    backp() { editing = null; renderEditor(false); toPreview({ type: 'tandaseru:product', id: null }); },
+    backp() { fxFor = null; editing = null; renderEditor(false); toPreview({ type: 'tandaseru:product', id: null }); },
     addp() {
       S.catalog.products.unshift(NEW.product()); editing = 0; changed(); renderAll();
       toPreview({ type: 'tandaseru:product', id: S.catalog.products[0].id });

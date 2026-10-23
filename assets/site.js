@@ -130,7 +130,15 @@ TSStore.ready.then(function () {
       <g filter="url(#ds)">${inner}</g></svg>`;
   }
 
-  const media = (src, tone, kind, eager) => (src ? `<img src="${esc(src)}" alt="" decoding="async"${eager ? ' fetchpriority="high"' : ' loading="lazy"'}>` : figure(tone, kind));
+  // zoom & geser foto yang diatur dari admin (p.fx[k] = {z, x, y}); kosong = tampilan bawaan
+  const fxOf = (p, k) => { const f = p && p.fx && p.fx[k]; return f && typeof f === 'object' ? f : null; };
+  const fxStyle = (f) => {
+    if (!f) return '';
+    const z = Math.min(3, Math.max(1, Number(f.z) || 1)), l = (z - 1) * 50;
+    const x = Math.min(l, Math.max(-l, Number(f.x) || 0)), y = Math.min(l, Math.max(-l, Number(f.y) || 0));
+    return z === 1 && !x && !y ? '' : ` style="transform:translate(${x}%,${y}%) scale(${z});transform-origin:center"`;
+  };
+  const media = (src, tone, kind, eager, fx) => (src ? `<img src="${esc(src)}" alt="" decoding="async"${eager ? ' fetchpriority="high"' : ' loading="lazy"'}${fxStyle(fx)}>` : figure(tone, kind));
   const section = (name) => `data-section="${name}"`;
   const visibleProducts = () => S.catalog.products.filter((p) => !p.hidden);
   const featuredProduct = () => {
@@ -450,7 +458,7 @@ TSStore.ready.then(function () {
       <section class="section featured" id="pilihan" ${section('catalog')} style="padding-top:0">
         <div class="wrap"><div class="feat-card rv"><div class="feat-grid">
           <figure class="feat-art">
-            <div class="fw feat-stage">${items.map((p, i) => `<div class="frame slide${i === ui.feat ? ' on' : ''}" data-i="${i}">${media(p.images && p.images[0], p.tone, kindOf(p))}</div>`).join('')}<i class="offset"></i></div>
+            <div class="fw feat-stage">${items.map((p, i) => `<div class="frame slide${i === ui.feat ? ' on' : ''}" data-i="${i}">${media(p.images && p.images[0], p.tone, kindOf(p), false, fxOf(p, 0))}</div>`).join('')}<i class="offset"></i></div>
             <span class="tagbox" id="featTag">${esc(items[ui.feat].badge || 'Pilihan')}</span>
             <span class="feat-count"><b id="featNo">${pad(ui.feat)}</b> / ${pad(items.length - 1)}</span>
           </figure>
@@ -545,7 +553,7 @@ TSStore.ready.then(function () {
       return `
       <article class="card${p.soldout ? ' is-sold' : ''}">
         <button class="card-media" data-act="open" data-id="${esc(p.id)}" aria-label="Lihat ${esc(p.name)}">
-          <div class="pic">${media(a, p.tone, kindOf(p))}${b ? `<img class="alt" src="${esc(b)}" alt="">` : ''}</div>
+          <div class="pic">${media(a, p.tone, kindOf(p), false, fxOf(p, 0))}${b ? `<img class="alt" src="${esc(b)}" alt=""${fxStyle(fxOf(p, 1))}>` : ''}</div>
           ${p.soldout ? '<span class="tag sold">Habis</span>' : p.badge ? `<span class="tag">${esc(p.badge)}</span>` : ''}
           ${off && !p.soldout ? `<span class="off">-${off}%</span>` : ''}
           <span class="quick">${p.soldout ? 'Kabari saya saat restock' : 'Lihat &amp; pesan'} <i>→</i></span>
@@ -719,7 +727,7 @@ TSStore.ready.then(function () {
         <button class="close" data-act="close" aria-label="Tutup">×</button>
         <div class="sheet-media">
           <div class="sheet-main gal" data-n="${slides.length}">
-            <div class="gtrack" style="transform:translateX(${-ui.img * 100}%)">${slides.map((src, i) => `<div class="gslide" aria-hidden="${i !== ui.img}"><div class="frame">${media(src, p.tone, kindOf(p), true)}</div></div>`).join('')}</div>
+            <div class="gtrack" style="transform:translateX(${-ui.img * 100}%)">${slides.map((src, i) => `<div class="gslide" aria-hidden="${i !== ui.img}"><div class="frame">${media(src, p.tone, kindOf(p), true, fxOf(p, i))}</div></div>`).join('')}</div>
             ${slides.length > 1 ? `<button class="gnav prev" data-act="gprev" aria-label="Foto sebelumnya"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><button class="gnav next" data-act="gnext" aria-label="Foto berikutnya"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button><div class="gdots">${slides.map((_, i) => `<button data-act="gdot" data-i="${i}" aria-current="${i === ui.img}" aria-label="Foto ${i + 1}"></button>`).join('')}</div>` : ''}
           </div>
         </div>
@@ -1005,7 +1013,7 @@ TSStore.ready.then(function () {
         <header><h3>Keranjang${n ? ` <small>${n} pcs</small>` : ''}</h3><button class="cclose" data-act="cartclose" aria-label="Tutup">×</button></header>
         ${ls.length ? `<div class="cartlist">${ls.map((l) => `
           <div class="citem${l.bad ? ' bad' : ''}">
-            <div class="cthumb">${l.p ? media(l.p.images && l.p.images[0], l.p.tone, kindOf(l.p), false) : ''}</div>
+            <div class="cthumb">${l.p ? media(l.p.images && l.p.images[0], l.p.tone, kindOf(l.p), false, fxOf(l.p, 0)) : ''}</div>
             <div class="cinfo">
               <b>${esc(l.p ? l.p.name : 'Produk dihapus')}</b>
               <span class="copt">${esc([l.it.size && 'Ukuran ' + l.it.size, l.it.color].filter(Boolean).join(' · '))}</span>
