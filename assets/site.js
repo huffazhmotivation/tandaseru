@@ -130,15 +130,7 @@ TSStore.ready.then(function () {
       <g filter="url(#ds)">${inner}</g></svg>`;
   }
 
-  // zoom & geser foto yang diatur dari admin (p.fx[k] = {z, x, y}); kosong = tampilan bawaan
-  const fxOf = (p, k) => { const f = p && p.fx && p.fx[k]; return f && typeof f === 'object' ? f : null; };
-  const fxStyle = (f) => {
-    if (!f) return '';
-    const z = Math.min(3, Math.max(1, Number(f.z) || 1)), l = (z - 1) * 50;
-    const x = Math.min(l, Math.max(-l, Number(f.x) || 0)), y = Math.min(l, Math.max(-l, Number(f.y) || 0));
-    return z === 1 && !x && !y ? '' : ` style="transform:translate(${x}%,${y}%) scale(${z});transform-origin:center"`;
-  };
-  const media = (src, tone, kind, eager, fx) => (src ? `<img src="${esc(src)}" alt="" decoding="async"${eager ? ' fetchpriority="high"' : ' loading="lazy"'}${fxStyle(fx)}>` : figure(tone, kind));
+  const media = (src, tone, kind, eager) => (src ? `<img src="${esc(src)}" alt="" decoding="async"${eager ? ' fetchpriority="high"' : ' loading="lazy"'}>` : figure(tone, kind));
   const section = (name) => `data-section="${name}"`;
   const visibleProducts = () => S.catalog.products.filter((p) => !p.hidden);
   const featuredProduct = () => {
@@ -325,9 +317,22 @@ TSStore.ready.then(function () {
       </section>`;
   }
 
+  // timer pribadi: waktu mulai disimpan per pengunjung (sessionStorage = tiap kunjungan baru; localStorage = sekali per perangkat)
+  let memStart = 0;
+  function visitorEnd() {
+    const p = S.promo, min = Math.max(1, Number(p.visitorMinutes) || 10), dev = p.visitorReset === 'device';
+    const key = 'tandaseru_promo_start' + (dev ? '' : '_v');
+    let t = 0;
+    try { const st = dev ? localStorage : sessionStorage; t = Number(st.getItem(key)) || 0; if (!t || t > Date.now()) { t = Date.now(); st.setItem(key, String(t)); } }
+    catch (e) { if (!memStart) memStart = Date.now(); t = memStart; }
+    return t + min * 6e4;
+  }
+  const promoVisitor = () => !!(S.promo && S.promo.showCountdown && S.promo.timerMode === 'visitor');
+  const promoExpired = () => promoVisitor() && Date.now() >= visitorEnd();
   const promoOn = () => {
     const p = S.promo;
     if (!p || !p.enabled) return false;
+    if (promoVisitor()) return true;
     if (p.endsAt) { const t = Date.parse(p.endsAt); if (!isNaN(t) && t <= Date.now()) return false; }
     return true;
   };
@@ -352,12 +357,12 @@ TSStore.ready.then(function () {
             ${p.text ? `<p class="ptext">${nl(p.text)}</p>` : ''}
             <div class="pact">
               <a class="btn" href="${esc(href)}"${ext ? ' target="_blank" rel="noopener"' : ''}>${esc(p.cta)} <span class="ar">→</span></a>
-              ${p.code ? `<button class="coupon" data-act="copy" data-code="${esc(p.code)}" aria-label="Salin kode ${esc(p.code)}"><small>Kode</small><b>${esc(p.code)}</b><i>${COPY}</i></button>` : ''}
+              ${p.code ? (promoExpired() ? `<button class="coupon dead" disabled aria-label="Kode ${esc(p.code)} sudah tidak berlaku"><small>Kedaluwarsa</small><b>${esc(p.code)}</b></button>` : `<button class="coupon" data-act="copy" data-code="${esc(p.code)}" aria-label="Salin kode ${esc(p.code)}"><small>Kode</small><b>${esc(p.code)}</b><i>${COPY}</i></button>`) : ''}
             </div>
           </div>
           <div class="promo-r">
             ${p.percent ? `<p class="plabel">${esc(p.percentLabel)}</p><div class="pnum">${esc(p.percent)}</div>` : ''}
-            ${p.showCountdown && p.endsAt ? `<p class="plabel clock">Berakhir dalam</p><div class="cd" role="timer" data-end="${esc(p.endsAt)}">${cdMarkup()}<i class="fuse"><b></b></i><span class="cdwhen"></span></div>` : ''}
+            ${promoExpired() ? `<p class="plabel clock expired">${esc(p.expiredText || 'Waktu promo habis')}</p>` : promoVisitor() ? `<p class="plabel clock">Kode hangus dalam</p><div class="cd${(Number(p.visitorMinutes) || 10) < 60 ? ' short' : ''}" role="timer" data-mode="visitor" data-end="${new Date(visitorEnd()).toISOString()}">${cdMarkup()}<i class="fuse"><b></b></i><span class="cdwhen"></span></div>` : p.showCountdown && p.endsAt ? `<p class="plabel clock">Berakhir dalam</p><div class="cd" role="timer" data-end="${esc(p.endsAt)}">${cdMarkup()}<i class="fuse"><b></b></i><span class="cdwhen"></span></div>` : ''}
           </div>
         </div></div>
       </section>`;
@@ -418,7 +423,18 @@ TSStore.ready.then(function () {
     const cd = $('.cd'); if (!cd) return;
     let ms = Date.parse(cd.dataset.end) - Date.now();
     if (isNaN(ms)) return;
-    if (ms <= 0) { const sec = $('#promo'); if (sec) sec.remove(); return; }
+    if (ms <= 0) {
+      if (cd.dataset.mode === 'visitor') {
+        const p = S.promo, r = cd.parentNode, lb = r && r.querySelector('.plabel.clock');
+        if (lb) { lb.classList.add('expired'); lb.textContent = p.expiredText || 'Waktu promo habis'; }
+        cd.remove();
+        const pr = $('.promo'); if (pr) pr.classList.remove('hot', 'hotter');
+        const cp = pr && pr.querySelector('.coupon');
+        if (cp) { cp.disabled = true; cp.classList.add('dead'); cp.removeAttribute('data-act'); const sm = cp.querySelector('small'), ic = cp.querySelector('i'); if (sm) sm.textContent = 'Kedaluwarsa'; if (ic) ic.remove(); }
+        return;
+      }
+      const sec = $('#promo'); if (sec) sec.remove(); return;
+    }
     const v = { d: Math.floor(ms / 864e5), h: Math.floor(ms / 36e5) % 24, m: Math.floor(ms / 6e4) % 60, s: Math.floor(ms / 1e3) % 60 };
     const pr = $('.promo'); if (pr) { pr.classList.toggle('hot', ms < 864e5); pr.classList.toggle('hotter', ms < 36e5); }
     for (const k in v) { const el = cd.querySelector(`[data-cd="${k}"]`); if (el) setDrum(el, v[k]); }
@@ -458,7 +474,7 @@ TSStore.ready.then(function () {
       <section class="section featured" id="pilihan" ${section('catalog')} style="padding-top:0">
         <div class="wrap"><div class="feat-card rv"><div class="feat-grid">
           <figure class="feat-art">
-            <div class="fw feat-stage">${items.map((p, i) => `<div class="frame slide${i === ui.feat ? ' on' : ''}" data-i="${i}">${media(p.images && p.images[0], p.tone, kindOf(p), false, fxOf(p, 0))}</div>`).join('')}<i class="offset"></i></div>
+            <div class="fw feat-stage">${items.map((p, i) => `<div class="frame slide${i === ui.feat ? ' on' : ''}" data-i="${i}">${media(p.images && p.images[0], p.tone, kindOf(p))}</div>`).join('')}<i class="offset"></i></div>
             <span class="tagbox" id="featTag">${esc(items[ui.feat].badge || 'Pilihan')}</span>
             <span class="feat-count"><b id="featNo">${pad(ui.feat)}</b> / ${pad(items.length - 1)}</span>
           </figure>
@@ -553,7 +569,7 @@ TSStore.ready.then(function () {
       return `
       <article class="card${p.soldout ? ' is-sold' : ''}">
         <button class="card-media" data-act="open" data-id="${esc(p.id)}" aria-label="Lihat ${esc(p.name)}">
-          <div class="pic">${media(a, p.tone, kindOf(p), false, fxOf(p, 0))}${b ? `<img class="alt" src="${esc(b)}" alt=""${fxStyle(fxOf(p, 1))}>` : ''}</div>
+          <div class="pic">${media(a, p.tone, kindOf(p))}${b ? `<img class="alt" src="${esc(b)}" alt="">` : ''}</div>
           ${p.soldout ? '<span class="tag sold">Habis</span>' : p.badge ? `<span class="tag">${esc(p.badge)}</span>` : ''}
           ${off && !p.soldout ? `<span class="off">-${off}%</span>` : ''}
           <span class="quick">${p.soldout ? 'Kabari saya saat restock' : 'Lihat &amp; pesan'} <i>→</i></span>
@@ -706,7 +722,7 @@ TSStore.ready.then(function () {
     if (ui.size) lines.push(`• Ukuran: ${ui.size}`);
     if (ui.color) lines.push(`• Warna: ${ui.color}`);
     lines.push(`• Harga: ${rupiah(p.price)}`);
-    if (promoOn() && S.promo.code) lines.push(`• Kode promo: ${S.promo.code}`);
+    if (promoOn() && !promoExpired() && S.promo.code) lines.push(`• Kode promo: ${S.promo.code}`);
     lines.push('', 'Apakah stoknya tersedia?');
     return lines.join('\n');
   }
@@ -727,7 +743,7 @@ TSStore.ready.then(function () {
         <button class="close" data-act="close" aria-label="Tutup">×</button>
         <div class="sheet-media">
           <div class="sheet-main gal" data-n="${slides.length}">
-            <div class="gtrack" style="transform:translateX(${-ui.img * 100}%)">${slides.map((src, i) => `<div class="gslide" aria-hidden="${i !== ui.img}"><div class="frame">${media(src, p.tone, kindOf(p), true, fxOf(p, i))}</div></div>`).join('')}</div>
+            <div class="gtrack" style="transform:translateX(${-ui.img * 100}%)">${slides.map((src, i) => `<div class="gslide" aria-hidden="${i !== ui.img}"><div class="frame">${media(src, p.tone, kindOf(p), true)}</div></div>`).join('')}</div>
             ${slides.length > 1 ? `<button class="gnav prev" data-act="gprev" aria-label="Foto sebelumnya"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><button class="gnav next" data-act="gnext" aria-label="Foto berikutnya"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button><div class="gdots">${slides.map((_, i) => `<button data-act="gdot" data-i="${i}" aria-current="${i === ui.img}" aria-label="Foto ${i + 1}"></button>`).join('')}</div>` : ''}
           </div>
         </div>
@@ -738,21 +754,9 @@ TSStore.ready.then(function () {
           <p class="desc">${nl(p.desc)}</p>
           ${sizes.length ? `<div class="opt"><h4>Ukuran<b>${esc(ui.size)}</b></h4><div class="opts">${sizes.map((s) => `<button class="pill" data-act="size" data-v="${esc(s)}" aria-pressed="${s === ui.size}">${esc(s)}</button>`).join('')}</div></div>` : ''}
           ${colors.length ? `<div class="opt"><h4>Warna<b>${esc(ui.color)}</b></h4><div class="opts">${colors.map((s) => `<button class="pill" data-act="color" data-v="${esc(s)}" aria-pressed="${s === ui.color}">${esc(s)}</button>`).join('')}</div></div>` : ''}
-          <div class="chwrap">${tplChannels(p)}</div>
+          ${tplChannels(p)}
         </div>
       </div>`;
-    fitSheet();
-  }
-
-  /* ganti ukuran/warna tanpa membangun ulang modal (anti-kedip) */
-  function pickOpt(act, v) {
-    const p = product(); if (!p) return;
-    ui[act] = ui[act] === v ? '' : v;
-    const m = $('#modal');
-    m.querySelectorAll('[data-act="' + act + '"]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === ui[act])));
-    const b = m.querySelector('[data-act="' + act + '"]'), lab = b && b.closest('.opt') && b.closest('.opt').querySelector('h4 b');
-    if (lab) lab.textContent = ui[act];
-    const cw = m.querySelector('.chwrap'); if (cw) cw.innerHTML = tplChannels(p);
     fitSheet();
   }
 
@@ -817,7 +821,6 @@ TSStore.ready.then(function () {
     const needSize = !p.soldout && list(p.sizes).length && !ui.size;
     return `<div class="opt"><h4>${esc((S.checkout && S.checkout.title) || 'Pesan lewat')}</h4>
       ${needSize ? '<p class="hint">Pilih ukuran dulu agar pesanan Anda tepat.</p>' : ''}
-      ${!p.soldout && cartOn() ? `<button class="cartadd" data-act="addcart">${BAG}<span>Tambah ke keranjang</span><em>${cartCount() ? '(' + cartCount() + ')' : ''}</em></button>` : ''}
       <div class="chans">${rows.length ? rows.join('') : '<p class="hint">Belum ada kanal pesan yang aktif.</p>'}</div></div>
       <p class="note">${esc((S.checkout && S.checkout.footnote) || '')}</p>`;
   }
@@ -896,7 +899,7 @@ TSStore.ready.then(function () {
       if (act === 'gprev') galGo(ui.img - 1);
       if (act === 'gnext') galGo(ui.img + 1);
       if (act === 'gdot') galGo(+el.dataset.i);
-      if (act === 'size' || act === 'color') pickOpt(act, el.dataset.v);
+      if (act === 'size' || act === 'color') { const v = el.dataset.v; ui[act] = ui[act] === v ? '' : v; renderModal(); }
       return;
     }
     if (e.target.id === 'modal') closeModal();
@@ -920,161 +923,6 @@ TSStore.ready.then(function () {
     else if (e.key === 'ArrowRight') galGo(ui.img + 1);
   });
 
-
-  /* ---------- keranjang: beli beberapa produk sekaligus → satu pesan WhatsApp ---------- */
-  const CART_KEY = 'tandaseru:cart1';
-  const cartOn = () => waOn() && chOf('cart').enabled !== false;
-  const MAXQ = 99;
-  const loadCart = () => {
-    try {
-      const a = JSON.parse(localStorage.getItem(CART_KEY) || '[]');
-      return (Array.isArray(a) ? a : []).map((x) => ({ id: String(x.id || ''), size: String(x.size || ''), color: String(x.color || ''), qty: Math.max(1, Math.min(MAXQ, +x.qty || 1)) })).filter((x) => x.id);
-    } catch (e) { return []; }
-  };
-  let cart = loadCart();
-  const saveCart = () => { try { localStorage.setItem(CART_KEY, JSON.stringify(cart)); } catch (e) {} };
-
-  // data keranjang hanya menyimpan id + pilihan; nama, harga, foto & stok selalu dibaca dari katalog terbaru
-  function cartLines() {
-    return cart.map((it, i) => {
-      const p = S.catalog.products.find((x) => x.id === it.id);
-      let bad = '';
-      if (!p || p.hidden) bad = 'Produk tidak tersedia lagi';
-      else if (p.soldout) bad = 'Stok habis';
-      else if (list(p.sizes).length && !list(p.sizes).includes(it.size)) bad = 'Ukuran tidak tersedia, hapus & pilih ulang';
-      else if (it.color && !list(p.colors).includes(it.color)) bad = 'Warna tidak tersedia, hapus & pilih ulang';
-      return { i, it, p, bad, sub: p ? (Number(p.price) || 0) * it.qty : 0 };
-    });
-  }
-  const cartCount = () => cartLines().reduce((n, l) => n + (l.bad ? 0 : l.it.qty), 0);
-  const cartTotal = () => cartLines().reduce((n, l) => n + (l.bad ? 0 : l.sub), 0);
-
-  function cartText() {
-    const ok = cartLines().filter((l) => !l.bad);
-    const L = [`Halo ${S.brand.name}, saya mau pesan:`, ''];
-    ok.forEach((l, n) => {
-      L.push(`${n + 1}. ${l.p.name}`);
-      const opt = [l.it.size && `Ukuran: ${l.it.size}`, l.it.color && `Warna: ${l.it.color}`].filter(Boolean).join(' · ');
-      if (opt) L.push(`   ${opt}`);
-      L.push(`   ${l.it.qty} × ${rupiah(l.p.price)} = ${rupiah(l.sub)}`);
-    });
-    L.push('', `Total ${ok.reduce((n, l) => n + l.it.qty, 0)} pcs: ${rupiah(cartTotal())}`);
-    if (promoOn() && S.promo.code) L.push(`Kode promo: ${S.promo.code}`);
-    L.push('', 'Apakah semuanya tersedia?');
-    return L.join('\n');
-  }
-
-  function cartToast(msg, withBtn) {
-    let t = $('#carttoast');
-    if (!t) { t = document.createElement('div'); t.id = 'carttoast'; t.className = 'carttoast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
-    t.innerHTML = `<span>${esc(msg)}</span>${withBtn ? '<button data-act="cart">Lihat</button>' : ''}`;
-    t.classList.add('on'); clearTimeout(cartToast.t); cartToast.t = setTimeout(() => t.classList.remove('on'), 3200);
-  }
-
-  const BAG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>';
-
-  // tombol keranjang berdampingan dengan tombol WhatsApp (lebar tombol WA berubah di desktop/HP)
-  function placeFab() {
-    const f = $('#cartfab'); if (!f) return;
-    const w = $('.fab');
-    f.style.setProperty('--fabw', (w ? w.offsetWidth + 12 : 0) + 'px');
-  }
-  addEventListener('resize', placeFab);
-  let cartAsk = false; // konfirmasi "kosongkan" ditampilkan di panel (confirm() bisa diblokir browser)
-
-  function cartRefresh() {
-    // buang item yang produknya sudah dihapus dari katalog (yang hanya habis/tersembunyi tetap tampil dengan catatan)
-    const before = cart.length;
-    cart = cart.filter((it) => S.catalog.products.some((p) => p.id === it.id));
-    if (cart.length !== before) saveCart();
-    let fab = $('#cartfab');
-    if (!cartOn()) {
-      if (fab) fab.remove();
-      const w = $('#cartwrap'); if (w) { w.remove(); lockScroll(false); }
-      return;
-    }
-    if (!fab) { fab = document.createElement('button'); fab.id = 'cartfab'; fab.className = 'cartfab'; fab.dataset.act = 'cart'; fab.setAttribute('aria-label', 'Buka keranjang'); document.body.appendChild(fab); }
-    const n = cartCount();
-    fab.innerHTML = `${BAG}${n ? `<b>${n}</b>` : ''}`;
-    fab.hidden = false;
-    placeFab();
-    if ($('#cartwrap')) renderCart();
-    const cb = $('#modal .cartadd'); if (cb) cb.querySelector('em').textContent = n ? `(${n})` : '';
-  }
-
-  function renderCart() {
-    let w = $('#cartwrap');
-    if (!w) { w = document.createElement('div'); w.id = 'cartwrap'; w.className = 'cartwrap'; document.body.appendChild(w); }
-    const ls = cartLines(), ok = ls.filter((l) => !l.bad), n = ok.reduce((a, l) => a + l.it.qty, 0);
-    const keep = w.querySelector('.cartlist'); const st = keep ? keep.scrollTop : 0;
-    w.innerHTML = `
-      <div class="cartbg" data-act="cartclose"></div>
-      <aside class="cartpane" role="dialog" aria-modal="true" aria-label="Keranjang belanja">
-        <header><h3>Keranjang${n ? ` <small>${n} pcs</small>` : ''}</h3><button class="cclose" data-act="cartclose" aria-label="Tutup">×</button></header>
-        ${ls.length ? `<div class="cartlist">${ls.map((l) => `
-          <div class="citem${l.bad ? ' bad' : ''}">
-            <div class="cthumb">${l.p ? media(l.p.images && l.p.images[0], l.p.tone, kindOf(l.p), false, fxOf(l.p, 0)) : ''}</div>
-            <div class="cinfo">
-              <b>${esc(l.p ? l.p.name : 'Produk dihapus')}</b>
-              <span class="copt">${esc([l.it.size && 'Ukuran ' + l.it.size, l.it.color].filter(Boolean).join(' · '))}</span>
-              ${l.bad ? `<span class="cwarn">${esc(l.bad)}</span>` : `<span class="cprice">${rupiah(l.p.price)}</span>`}
-              <div class="crow">
-                ${l.bad ? '<span></span>' : `<div class="qty"><button data-act="cdec" data-i="${l.i}" aria-label="Kurangi">−</button><span>${l.it.qty}</span><button data-act="cinc" data-i="${l.i}" aria-label="Tambah" ${l.it.qty >= MAXQ ? 'disabled' : ''}>+</button></div>`}
-                <button class="cdel" data-act="cdel" data-i="${l.i}">Hapus</button>
-              </div>
-            </div>
-            ${l.bad ? '' : `<div class="csub">${rupiah(l.sub)}</div>`}
-          </div>`).join('')}</div>
-        <footer>
-          <div class="ctotal"><span>Total</span><b>${rupiah(cartTotal())}</b></div>
-          ${promoOn() && S.promo.code ? `<p class="cnote">Kode promo <b>${esc(S.promo.code)}</b> ikut dikirim di pesan.</p>` : ''}
-          ${ok.length ? `<a class="corder" href="${esc(waLink(cartText()))}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="${WA_PATH}"/></svg>Pesan semua via WhatsApp</a>` : '<p class="cnote">Tidak ada produk yang bisa dipesan.</p>'}
-          ${cartAsk
-            ? `<div class="cask"><span>Kosongkan semua produk?</span><button class="cyes" data-act="cclearyes">Ya, kosongkan</button><button data-act="cclearno">Batal</button></div>`
-            : '<button class="cclear" data-act="cclear">Kosongkan keranjang</button>'}
-          <p class="cnote">Ongkir & pembayaran dikonfirmasi lewat chat WhatsApp.</p>
-        </footer>` : `<div class="cartempty">${BAG}<p>Keranjang masih kosong.</p><button class="corder" data-act="cartclose">Lihat koleksi</button></div>`}
-      </aside>`;
-    const nl2 = w.querySelector('.cartlist'); if (nl2) nl2.scrollTop = st;
-  }
-  function openCart() {
-    if (!cartOn()) return;
-    if (ui.openId) closeModal();
-    renderCart(); lockScroll(true);
-    const c = $('#cartwrap .cclose'); if (c) c.focus({ preventScroll: true });
-  }
-  function closeCart() { cartAsk = false; const w = $('#cartwrap'); if (w) w.remove(); lockScroll(false); }
-
-  function addToCart(p) {
-    if (!p || p.soldout || !cartOn()) return;
-    if (list(p.sizes).length && !ui.size) {
-      cartToast('Pilih ukuran dulu ya');
-      const o = $('#modal .opts'); if (o) { o.classList.remove('shake'); void o.offsetWidth; o.classList.add('shake'); }
-      return;
-    }
-    const f = cart.find((x) => x.id === p.id && x.size === ui.size && x.color === ui.color);
-    if (f) f.qty = Math.min(MAXQ, f.qty + 1); else cart.push({ id: p.id, size: ui.size, color: ui.color, qty: 1 });
-    saveCart(); cartRefresh();
-    const fab = $('#cartfab'); if (fab) { fab.classList.remove('pop'); void fab.offsetWidth; fab.classList.add('pop'); }
-    cartToast(`${p.name} masuk keranjang`, true);
-  }
-
-  document.addEventListener('click', (e) => {
-    const el = e.target.closest('[data-act]'); if (!el) return;
-    const act = el.dataset.act, i = +el.dataset.i;
-    if (act === 'addcart') addToCart(product());
-    else if (act === 'cart') { const t = $('#carttoast'); if (t) t.classList.remove('on'); openCart(); }
-    else if (act === 'cartclose') closeCart();
-    else if (act === 'cinc' && cart[i]) { cart[i].qty = Math.min(MAXQ, cart[i].qty + 1); saveCart(); cartRefresh(); }
-    else if (act === 'cdec' && cart[i]) { cart[i].qty = Math.max(1, cart[i].qty - 1); saveCart(); cartRefresh(); }
-    else if (act === 'cdel' && cart[i]) { cart.splice(i, 1); saveCart(); cartRefresh(); }
-    else if (act === 'cclear') { cartAsk = true; renderCart(); }
-    else if (act === 'cclearno') { cartAsk = false; renderCart(); }
-    else if (act === 'cclearyes') { cart = []; cartAsk = false; saveCart(); cartRefresh(); }
-  });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('#cartwrap')) closeCart(); });
-  addEventListener('storage', (e) => { if (e.key === CART_KEY) { cart = loadCart(); cartRefresh(); } }); // tab lain mengubah keranjang
-
   /* ---------- preview dari admin ---------- */
   const imgStore = {};
   if (isPreview) {
@@ -1083,7 +931,7 @@ TSStore.ready.then(function () {
       if (d.type === 'tandaseru:state') {
         if (d.imgs) Object.assign(imgStore, d.imgs);
         const un = (v) => (typeof v === 'string' ? (v.startsWith('@img') && imgStore[v]) || v : Array.isArray(v) ? v.map(un) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, un(x)])) : v);
-        S = TSStore.merge(TSStore.DEFAULTS, un(d.state)); render(); cartRefresh();
+        S = TSStore.merge(TSStore.DEFAULTS, un(d.state)); render();
       }
       if (d.type === 'tandaseru:scroll') {
         const t = document.querySelector(`[data-section="${d.section}"]`) || (d.section === 'general' ? $('#top') : null);
@@ -1138,8 +986,6 @@ TSStore.ready.then(function () {
 
   initDeck();
   render();
-  cartRefresh();
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(placeFab);
   initFx();
   setInterval(tickPromo, 1000); tickPromo();
 });
