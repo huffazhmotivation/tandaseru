@@ -1249,3 +1249,119 @@ body { overflow-x: hidden; overflow-x: clip; max-width: 100%; position: relative
 .coupon.dead { cursor: not-allowed; opacity: .7; border-style: dashed; pointer-events: none; }
 .coupon.dead b { text-decoration: line-through; text-decoration-thickness: 2px; }
 .coupon.dead:hover { background: transparent; border-color: inherit; }
+
+/* =====================================================================
+   KERANJANG BELANJA — ikon di samping tombol WhatsApp, panel keranjang, tombol di panel produk
+   ===================================================================== */
+.fabs { position: fixed; right: max(20px, env(safe-area-inset-right, 0px)); bottom: max(20px, env(safe-area-inset-bottom, 0px)); z-index: 25; display: flex; align-items: center; gap: 12px; }
+.fabs .fab { position: relative; right: auto; bottom: auto; }
+.cartbtn { position: relative; flex: none; width: 56px; height: 56px; display: grid; place-items: center; border-radius: 50%; background: var(--paper); color: var(--primary); box-shadow: 0 18px 36px -14px rgba(0, 0, 0, .5), inset 0 0 0 1px var(--line); transition: transform .4s var(--ease), background .3s, color .3s; }
+.cartbtn:hover { background: var(--primary); color: #fff; transform: translateY(-3px); }
+.cartbtn svg { width: 23px; height: 23px; }
+.cbadge { position: absolute; top: -5px; right: -5px; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; background: var(--accent); color: var(--ink); font: 700 12px/22px var(--display); font-style: normal; text-align: center; box-shadow: 0 0 0 2px var(--bg); }
+.cbadge[hidden] { display: none; }
+.cartbtn.bump { animation: cbump .5s var(--ease); }
+@keyframes cbump { 30% { transform: scale(1.18); } 60% { transform: scale(.94); } }
+
+.cart { position: fixed; inset: 0; z-index: 80; visibility: hidden; pointer-events: none; }
+.cart[hidden] { display: none; }
+.cart.open { visibility: visible; pointer-events: auto; }
+.cart-bd { position: absolute; inset: 0; background: color-mix(in srgb, var(--ink) 62%, transparent); opacity: 0; transition: opacity .35s var(--ease); }
+.cart.open .cart-bd { opacity: 1; }
+.cart-sheet { position: absolute; top: 0; right: 0; bottom: 0; width: min(440px, 100%); display: flex; flex-direction: column; background: var(--bg); color: var(--ink); border-radius: var(--r-l) 0 0 var(--r-l); overflow: hidden; box-shadow: -30px 0 60px -30px rgba(0, 0, 0, .5); transform: translateX(102%); transition: transform .45s var(--ease); }
+.cart.open .cart-sheet { transform: none; }
+.cart-h { flex: none; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 22px 22px 12px; }
+.cart-h h3 { margin: 0; font-family: var(--display); font-size: 26px; line-height: 1.1; font-weight: 600; letter-spacing: -.02em; color: var(--primary); }
+.cart-h small { display: block; margin-top: 4px; font-size: 12.5px; color: var(--muted); }
+.cart-x { flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--paper); font-size: 22px; line-height: 1; box-shadow: inset 0 0 0 1px var(--line); transition: background .3s, color .3s; }
+.cart-x:hover { background: var(--ink); color: #fff; }
+.cart-body { flex: 1 1 auto; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 0 22px 10px; }
+.cart-list { list-style: none; margin: 0; padding: 0; }
+.ci { position: relative; display: flex; gap: 14px; padding: 14px 0; border-top: 1px solid var(--line); transition: opacity .22s, transform .22s; }
+.ci:first-child { border-top: 0; }
+.ci.gone { opacity: 0; transform: translateX(24px); }
+.ci-img { position: relative; flex: none; width: 72px; height: 90px; border-radius: 14px; overflow: hidden; background: var(--soft); }
+.ci-img img, .ci-img .fig { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 18%; }
+.ci-b { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.ci-n, .ci-v, .ci-off { padding-right: 34px; }
+.ci-n { font-size: 14.5px; font-weight: 700; line-height: 1.25; }
+.ci-v { font-size: 12.5px; color: var(--muted); }
+.ci-r { margin-top: auto; padding-top: 8px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; }
+.qty { display: inline-flex; align-items: center; border-radius: 999px; background: var(--paper); box-shadow: inset 0 0 0 1px var(--line); }
+.qty button { width: 32px; height: 32px; border-radius: 50%; font-size: 17px; line-height: 1; transition: background .25s, color .25s; }
+.qty button:hover { background: var(--primary); color: #fff; }
+.qty span { min-width: 26px; text-align: center; font-size: 14px; font-weight: 700; }
+.ci-p { font-style: normal; font-size: 14.5px; font-weight: 700; color: var(--primary); }
+.ci-x { position: absolute; top: 10px; right: 0; width: 30px; height: 30px; border-radius: 50%; font-size: 18px; line-height: 1; color: var(--muted); transition: background .25s, color .25s; }
+.ci-x:hover { background: var(--ink); color: #fff; }
+.ci.off .ci-img { opacity: .45; filter: grayscale(1); }
+.ci-off { font-size: 12.5px; font-weight: 700; color: var(--gold-d); }
+.cart-empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: 56px 12px 40px; }
+.cart-empty svg { width: 44px; height: 44px; color: var(--primary); opacity: .55; margin-bottom: 6px; }
+.cart-empty b { font-size: 17px; }
+.cart-empty p { margin: 0 0 14px; max-width: 270px; font-size: 13.5px; color: var(--muted); }
+.cart-f { flex: none; display: flex; flex-direction: column; gap: 12px; padding: 16px 22px calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--paper); border-top: 1px solid var(--line); }
+.cart-f[hidden] { display: none; }
+.cart-sum { display: flex; align-items: baseline; justify-content: space-between; font-size: 14px; color: var(--muted); }
+.cart-sum b { font-size: 22px; font-weight: 700; color: var(--ink); }
+.cart-wa { display: flex; align-items: center; justify-content: center; gap: 10px; height: 54px; border-radius: 999px; background: #1FAF5A; color: #fff; font-size: 15px; font-weight: 700; transition: filter .25s, transform .3s var(--ease); }
+.cart-wa[hidden] { display: none; }
+.cart-wa:hover { filter: brightness(.94); transform: translateY(-2px); }
+.cart-wa svg { width: 22px; height: 22px; }
+.cart-wa.dis { opacity: .45; pointer-events: none; }
+.cart-note { margin: 0; text-align: center; font-size: 12px; color: var(--muted); }
+.cart-note[hidden] { display: none; }
+.cart-clear { align-self: center; font-size: 12.5px; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+.cart-clear:hover { color: var(--ink); }
+@media (max-width: 700px) {
+  .cart-sheet { top: auto; left: 0; width: 100%; max-height: 90vh; max-height: 90dvh; border-radius: var(--r-l) var(--r-l) 0 0; transform: translateY(102%); box-shadow: 0 -30px 60px -30px rgba(0, 0, 0, .5); }
+  .cart-body { min-height: 120px; }
+}
+
+/* tombol di panel produk */
+.addcart { width: 100%; height: 50px; margin-bottom: 14px; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 999px; background: var(--accent); color: var(--ink); font-size: 14.5px; font-weight: 700; transition: background .3s, color .3s, box-shadow .3s, transform .3s var(--ease); }
+.addcart svg { width: 20px; height: 20px; flex: none; }
+.addcart:hover { background: var(--ink); color: #fff; }
+.addcart:active { transform: scale(.98); }
+.addcart[aria-disabled="true"] { background: transparent; box-shadow: inset 0 0 0 1.5px var(--ink); }
+.addcart[aria-disabled="true"]:hover { background: var(--ink); color: #fff; }
+.addcart[data-state="ok"] { background: var(--primary); color: #fff; box-shadow: none; }
+.addcart[data-state="warn"] { background: transparent; color: var(--gold-d); box-shadow: inset 0 0 0 1.5px var(--gold-d); animation: cshake .4s; }
+@keyframes cshake { 20% { transform: translateX(-6px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(4px); } }
+.hint.off { visibility: hidden; }
+.sheet-info .addcart { height: 46px; margin-bottom: 10px; }
+.sheet.f1 .sheet-info .addcart { height: 42px; margin-bottom: 8px; }
+.sheet.f2 .sheet-info .addcart { height: 38px; margin-bottom: 6px; font-size: 13.5px; }
+.sheet.f4 .sheet-info .addcart { height: 34px; margin-bottom: 5px; }
+@media (max-width: 900px) { .sheet-info .addcart { height: 44px; margin-bottom: 8px; font-size: 14px; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .cart-sheet, .cart-bd, .ci { transition-duration: .01s; }
+  .cartbtn.bump, .addcart[data-state="warn"] { animation: none; }
+}
+
+/* ---- responsif tambahan: HP landscape & target sentuh ---- */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 950px) {
+  .modal { padding: 0; align-items: center; }
+  .sheet { display: grid; grid-template-columns: minmax(0, 40%) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); width: 100%; height: 100vh; height: 100dvh; max-height: none; overflow: hidden; border-radius: 0; }
+  .sheet-media { display: block; height: auto; min-height: 0; padding: 10px; }
+  .sheet-main { aspect-ratio: auto; width: 100%; height: 100%; }
+  .sheet-info { overflow-y: auto; overscroll-behavior: contain; padding: 16px 20px 20px; }
+  .sheet-info h3 { font-size: 26px; margin: 6px 0 8px; }
+  .sheet-info .price { margin-bottom: 8px; }
+  .cart-sheet { width: min(440px, 100%); top: 0; left: auto; max-height: none; border-radius: var(--r-l) 0 0 var(--r-l); transform: translateX(102%); }
+  .cart.open .cart-sheet { transform: none; }
+  .cart-f { gap: 8px; padding-top: 12px; }
+  .cart-wa { height: 46px; }
+}
+@media (pointer: coarse) {
+  .qty button { width: 40px; height: 40px; font-size: 19px; }
+  .qty span { min-width: 30px; }
+  .ci-x { width: 40px; height: 40px; top: 4px; right: 0; }
+  .ci-n, .ci-v, .ci-off { padding-right: 40px; }
+  .cart-x { width: 44px; height: 44px; }
+  .cart-clear { padding: 10px 14px; }
+}
+.cartbtn:focus-visible, .addcart:focus-visible, .cart-wa:focus-visible, .cart-x:focus-visible, .qty button:focus-visible, .ci-x:focus-visible, .cart-clear:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+@media (max-width: 360px) { .ci-img { width: 60px; height: 76px; } .ci { gap: 10px; } .cart-h, .cart-body, .cart-f { padding-left: 16px; padding-right: 16px; } }
+.cart-sheet:focus { outline: none; }
